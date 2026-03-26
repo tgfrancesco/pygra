@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygra"
+version = "0.4.0"
+description = "PyGRA — interactive scientific data plotter inspired by xmgrace"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Francesco Tosti Guerra" }]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "PyQt5>=5.15",
+]
+
+[project.scripts]
+pygra = "pygra.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pygra*"]
+
+[tool.setuptools.package-data]
+pygra = ["../pygra_logo.png"]

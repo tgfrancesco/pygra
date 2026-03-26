@@ -1,0 +1,12 @@
+name: pygra
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy>=1.24
+  - scipy>=1.10
+  - matplotlib>=3.7
+  - pyqt>=5.15
+  - pip
+  - pip:
+    - -e .
