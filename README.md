@@ -1,7 +1,7 @@
 # PyGRA
 
 <p align="center">
-  <img src="pygra_logo.png" width="340" alt="PyGRA logo — a sleepy sloth on a graph"/>
+  <img src="logo/pygra_logo.png" width="340" alt="PyGRA logo — a sleepy sloth on a graph"/>
 </p>
 
 **PyGRA** is an interactive scientific data plotter built with Python, PyQt5, and matplotlib, inspired by xmgrace.

@@ -49,7 +49,7 @@ def _parse_interleaved(argv: list) -> dict:
         sys.exit(0)
 
     files = []
-    load  = None
+    load = None
 
     # First pass: collect files (from --file or positional) and any immediately following --x/--y
     i = 0
@@ -64,12 +64,16 @@ def _parse_interleaved(argv: list) -> dict:
                 files.append({"path": argv[i], "xcol": None, "ycol": None})
         elif tok == "--x" and files:
             i += 1
-            try:    files[-1]["xcol"] = int(argv[i])
-            except: pass
+            try:
+                files[-1]["xcol"] = int(argv[i])
+            except:
+                pass
         elif tok == "--y" and files:
             i += 1
-            try:    files[-1]["ycol"] = int(argv[i])
-            except: pass
+            try:
+                files[-1]["ycol"] = int(argv[i])
+            except:
+                pass
         elif not tok.startswith("-"):
             # positional argument: treat as a file path
             files.append({"path": tok, "xcol": None, "ycol": None})
@@ -99,7 +103,9 @@ def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    logo = os.path.join(os.path.dirname(os.path.dirname(__file__)), "pygra_logo.png")
+    logo = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "logo/pygra_dock_icon.png"
+    )
     if os.path.exists(logo):
         app.setWindowIcon(QIcon(logo))
 
