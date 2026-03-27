@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         root.addWidget(splitter)
 
         # ---- LEFT PANEL ----
-        left = QWidget(); left.setFixedWidth(330)
+        left = QWidget(); left.setMinimumWidth(280); left.setMaximumWidth(500)
         lv = QVBoxLayout(left); lv.setContentsMargins(6, 6, 6, 6); lv.setSpacing(6)
 
         # load button

@@ -103,11 +103,22 @@ def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    logo = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "logo/pygra_dock_icon.png"
-    )
-    if os.path.exists(logo):
-        app.setWindowIcon(QIcon(logo))
+    # search for icon in logo/ subfolder first, then package root
+    pkg_root = os.path.dirname(os.path.dirname(__file__))
+    logo = None
+    for candidate in [
+        os.path.join(pkg_root, "logo", "pygra_dock_icon.png"),
+        os.path.join(pkg_root, "logo", "pygra_logo.png"),
+        os.path.join(pkg_root, "pygra_logo.png"),
+    ]:
+        if os.path.exists(candidate):
+            logo = candidate
+            break
+    if logo:
+        icon = QIcon(logo)
+        app.setWindowIcon(icon)
+        # on Linux, also set the taskbar/dock icon via the window icon
+        # (requires a .desktop file for full dock integration — see README)
 
     win = MainWindow()
 

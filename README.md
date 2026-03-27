@@ -47,8 +47,17 @@ pip install -e .
 
 ```bash
 pip install -r requirements.txt
-pip install -e .
+pip install -e .```
+
+### Linux: dock/launcher icon
+
+On Linux, run the provided install script once after installation to register the icon and add PyGRA to the application launcher:
+
+```bash
+bash install_icon_linux.sh
 ```
+
+This copies the icon to `~/.local/share/icons` and creates a `.desktop` file in `~/.local/share/applications`. You may need to log out and back in for the icon to appear in the dock.
 
 ## Usage
 
