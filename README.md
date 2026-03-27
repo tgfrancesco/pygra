@@ -113,7 +113,7 @@ Custom colors added via **Add to Custom Colors** are saved in preferences and re
 pygra
 
 # positional arguments — shell expands the glob
-pygra *wham_TI.dat
+pygra *file_*.dat
 
 # same columns for all files
 pygra file1.dat file2.dat --x 0 --y 3
