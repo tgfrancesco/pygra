@@ -823,6 +823,17 @@ class MainWindow(QMainWindow):
             self, "Save figure", "plot.png",
             "PNG (*.png);;PDF (*.pdf);;SVG (*.svg);;All files (*)",
         )
-        if path:
-            dpi = self.style_settings.get("dpi", 150)
+        if not path:
+            return
+        dpi = self.style_settings.get("dpi", 150)
+        auto = self.style_settings.get("fig_size_auto", True)
+        if auto:
             self.fig.savefig(path, dpi=dpi, bbox_inches="tight")
+        else:
+            w = self.style_settings.get("fig_w", 8.0)
+            h = self.style_settings.get("fig_h", 5.0)
+            orig_size = self.fig.get_size_inches()
+            self.fig.set_size_inches(w, h)
+            self.fig.savefig(path, dpi=dpi, bbox_inches="tight")
+            self.fig.set_size_inches(*orig_size)
+            self.canvas.draw_idle()

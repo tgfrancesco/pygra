@@ -94,6 +94,24 @@ class StyleDialog(QDialog):
         self.dpi = QSpinBox(); self.dpi.setRange(72, 600); self.dpi.setValue(s.get("dpi", 150))
         form.addRow("Save DPI:", self.dpi)
 
+        self.fig_size_auto = QCheckBox("Use current window size")
+        self.fig_size_auto.setChecked(s.get("fig_size_auto", True))
+        self.fig_size_auto.toggled.connect(self._toggle_fig_size)
+        form.addRow("Figure size (for save):", self.fig_size_auto)
+
+        self.fig_w = QDoubleSpinBox(); self.fig_w.setRange(1, 100); self.fig_w.setSingleStep(0.5)
+        self.fig_w.setValue(s.get("fig_w", 8.0)); self.fig_w.setSuffix(" in")
+        form.addRow("Width:", self.fig_w)
+
+        self.fig_h = QDoubleSpinBox(); self.fig_h.setRange(1, 100); self.fig_h.setSingleStep(0.5)
+        self.fig_h.setValue(s.get("fig_h", 5.0)); self.fig_h.setSuffix(" in")
+        form.addRow("Height:", self.fig_h)
+
+        # set initial enabled state
+        auto = s.get("fig_size_auto", True)
+        self.fig_w.setEnabled(not auto)
+        self.fig_h.setEnabled(not auto)
+
         self._sep(form)
 
         # legend options
@@ -133,6 +151,10 @@ class StyleDialog(QDialog):
         sep = QFrame(); sep.setFrameShape(QFrame.HLine); sep.setFrameShadow(QFrame.Sunken)
         form.addRow(sep)
 
+    def _toggle_fig_size(self, auto: bool):
+        self.fig_w.setEnabled(not auto)
+        self.fig_h.setEnabled(not auto)
+
     def get_settings(self) -> dict:
         return {
             "title_fs":   self.title_fs.value(),
@@ -147,6 +169,9 @@ class StyleDialog(QDialog):
             "grid_minor": self.grid_minor.isChecked(),
             "theme":           self.theme.currentText(),
             "dpi":             self.dpi.value(),
+            "fig_size_auto":   self.fig_size_auto.isChecked(),
+            "fig_w":           self.fig_w.value(),
+            "fig_h":           self.fig_h.value(),
             "legend_loc":      self.legend_loc.currentText(),
             "legend_frameon":  self.legend_frameon.isChecked(),
             "legend_alpha":    self.legend_alpha.value(),
