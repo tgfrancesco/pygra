@@ -43,8 +43,8 @@ def fit_poisson(data: np.ndarray):
 def fit_custom(data: np.ndarray, formula: str, param_names: list):
     """Fit a custom formula (using x and param names) to data density."""
     import math
-    safe_ns = {k: getattr(np, k) for k in dir(np) if not k.startswith("_")}
-    safe_ns.update({k: getattr(math, k) for k in dir(math) if not k.startswith("_")})
+    safe_ns = {k: getattr(math, k) for k in dir(math) if not k.startswith("_")}
+    safe_ns.update({k: getattr(np, k) for k in dir(np) if not k.startswith("_")})
 
     def model(x, *params):
         ns = dict(safe_ns)

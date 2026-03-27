@@ -5,6 +5,7 @@ Stored in ~/.config/pygra/preferences.json
 
 import json
 import os
+import sys
 from pathlib import Path
 
 from .constants import DEFAULT_STYLE_SETTINGS
@@ -37,8 +38,8 @@ def load_prefs() -> dict:
             with open(PREFS_PATH) as f:
                 saved = json.load(f)
             prefs.update(saved)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not load preferences from {PREFS_PATH}: {e}", file=sys.stderr)
     return prefs
 
 

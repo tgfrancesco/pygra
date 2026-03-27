@@ -16,15 +16,16 @@ class DataSet:
         self._load()
 
     def _load(self):
+        self.skipped_rows: list[tuple[int, str]] = []  # (line_number, content)
         with open(self.path) as f:
-            for line in f:
+            for lineno, line in enumerate(f, start=1):
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
                 try:
                     self.raw.append([float(v) for v in line.split()])
                 except ValueError:
-                    continue
+                    self.skipped_rows.append((lineno, line))
         self.arr = np.array(self.raw) if self.raw else np.empty((0, 0))
 
     @property

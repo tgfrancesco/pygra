@@ -66,13 +66,13 @@ def _parse_interleaved(argv: list) -> dict:
             i += 1
             try:
                 files[-1]["xcol"] = int(argv[i])
-            except:
+            except (ValueError, IndexError):
                 pass
         elif tok == "--y" and files:
             i += 1
             try:
                 files[-1]["ycol"] = int(argv[i])
-            except:
+            except (ValueError, IndexError):
                 pass
         elif not tok.startswith("-"):
             # positional argument: treat as a file path

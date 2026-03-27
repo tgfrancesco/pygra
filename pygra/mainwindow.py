@@ -2,6 +2,8 @@
 mainwindow.py — MainWindow with menu bar, fit layer management, custom toolbar
 """
 
+import sys
+
 import numpy as np
 from scipy.interpolate import make_interp_spline
 
@@ -346,8 +348,8 @@ class MainWindow(QMainWindow):
             prefs.update(self._collect_geometry())
             prefs.update(self.style_settings)
             save_prefs(prefs)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not save preferences: {e}", file=sys.stderr)
 
     def _save_preferences(self):
         """Save current geometry + style settings as user preferences."""
@@ -405,7 +407,7 @@ class MainWindow(QMainWindow):
         try:
             inv = ax.transAxes.inverted()
             fx, fy = inv.transform((event.x, event.y))
-        except Exception:
+        except (ValueError, RuntimeError):
             return
         self._legend_pos = (fx, fy)
         leg = ax.get_legend()
@@ -432,6 +434,18 @@ class MainWindow(QMainWindow):
     def _load_file(self, path: str, xcol: int = 0, ycol: int = 1):
         try:
             ds = DataSet(path)
+            if ds.skipped_rows:
+                n = len(ds.skipped_rows)
+                examples = "\n".join(
+                    f"  line {ln}: {content}"
+                    for ln, content in ds.skipped_rows[:5]
+                )
+                tail = f"\n  … and {n - 5} more" if n > 5 else ""
+                QMessageBox.warning(
+                    self, "Rows skipped",
+                    f"{n} row{'s' if n != 1 else ''} could not be parsed in:\n{path}\n\n"
+                    f"Non-numeric content was ignored:\n{examples}{tail}"
+                )
             if ds.ncols == 0:
                 QMessageBox.warning(self, "Empty file", f"No numeric data in:\n{path}")
                 return None
@@ -822,8 +836,8 @@ class MainWindow(QMainWindow):
         theme = ss.get("theme", "default")
         try:
             plt.rcdefaults() if theme == "default" else plt.style.use(theme)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not apply theme '{theme}': {e}", file=sys.stderr)
 
         self.fig.clear()
         ax = self.fig.add_subplot(111)

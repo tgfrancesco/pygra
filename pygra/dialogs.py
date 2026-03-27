@@ -2,6 +2,8 @@
 dialogs.py — all application dialogs
 """
 
+import sys
+
 import numpy as np
 
 from PyQt5.QtWidgets import (
@@ -46,8 +48,8 @@ def apply_basic_palette(name: str):
     for i, hex_c in enumerate(tiled[:48]):
         try:
             QColorDialog.setStandardColor(i, QColor(hex_c))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not set standard color slot {i} ({hex_c!r}): {e}", file=sys.stderr)
 
 
 def restore_basic_palette():
@@ -55,8 +57,8 @@ def restore_basic_palette():
     for i, hex_c in enumerate(_DEFAULT_STANDARD):
         try:
             QColorDialog.setStandardColor(i, QColor(hex_c))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not restore standard color slot {i} ({hex_c!r}): {e}", file=sys.stderr)
 
 
 def pick_color(current: str, parent=None) -> str:
@@ -70,15 +72,16 @@ def pick_color(current: str, parent=None) -> str:
         from .preferences import load_prefs, save_prefs
         prefs = load_prefs()
         custom = prefs.get("custom_colors", [])
-    except Exception:
+    except Exception as e:
+        print(f"Warning: could not load color preferences: {e}", file=sys.stderr)
         custom = []
         prefs = {}
 
     for i, hex_c in enumerate(custom[:16]):
         try:
             QColorDialog.setCustomColor(i, QColor(hex_c))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not restore custom color slot {i} ({hex_c!r}): {e}", file=sys.stderr)
 
     import sys
     if sys.platform == "darwin":
@@ -92,8 +95,8 @@ def pick_color(current: str, parent=None) -> str:
                 if "screen" in btn.text().lower():
                     btn.hide()
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not hide screen color picker button: {e}", file=sys.stderr)
         cd.exec_()
         c = cd.currentColor() if cd.result() == QDialog.Accepted else QColor()
     else:
@@ -110,13 +113,13 @@ def pick_color(current: str, parent=None) -> str:
             cc = QColorDialog.customColor(i)
             if cc.isValid() and cc.name() != "#000000":
                 new_custom.append(cc.name())
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: could not read custom color slot {i}: {e}", file=sys.stderr)
     try:
         prefs["custom_colors"] = list(dict.fromkeys(new_custom))[:16]
         save_prefs(prefs)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Warning: could not save color preferences: {e}", file=sys.stderr)
 
     return c.name()
 

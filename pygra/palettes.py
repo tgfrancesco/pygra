@@ -2,6 +2,8 @@
 palettes.py — scientific color palettes for PyGRA
 """
 
+import sys
+
 import numpy as np
 
 
@@ -11,7 +13,8 @@ def _mpl_palette(name: str, n: int) -> list:
         import matplotlib.pyplot as plt
         cmap = plt.get_cmap(name)
         return [_rgba_to_hex(cmap(i / (n - 1))) for i in range(n)]
-    except Exception:
+    except Exception as e:
+        print(f"Warning: could not load colormap '{name}': {e}", file=sys.stderr)
         return []
 
 
