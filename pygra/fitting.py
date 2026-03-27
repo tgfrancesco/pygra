@@ -8,6 +8,25 @@ from scipy.stats import norm, expon, maxwell, poisson
 
 
 def fit_gaussian(data: np.ndarray):
+    """
+    Fit a Gaussian (normal) distribution to *data* using MLE.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        1-D array of sample values.
+
+    Returns
+    -------
+    x : numpy.ndarray
+        300 evenly-spaced points spanning ``[data.min(), data.max()]``.
+    y : numpy.ndarray
+        Gaussian PDF evaluated at each point in *x*.
+    label : str
+        Human-readable label including the fitted μ and σ.
+    params : dict
+        ``{"μ": float, "σ": float}`` — fitted mean and standard deviation.
+    """
     mu, sigma = norm.fit(data)
     x = np.linspace(data.min(), data.max(), 300)
     y = norm.pdf(x, mu, sigma)
@@ -16,6 +35,25 @@ def fit_gaussian(data: np.ndarray):
 
 
 def fit_exponential(data: np.ndarray):
+    """
+    Fit an exponential distribution to *data* with fixed location (loc=0).
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        1-D array of non-negative sample values.
+
+    Returns
+    -------
+    x : numpy.ndarray
+        300 evenly-spaced points spanning ``[data.min(), data.max()]``.
+    y : numpy.ndarray
+        Exponential PDF evaluated at each point in *x*.
+    label : str
+        Human-readable label including the fitted rate λ.
+    params : dict
+        ``{"λ": float}`` — fitted rate parameter (1 / scale).
+    """
     loc, scale = expon.fit(data, floc=0)
     x = np.linspace(data.min(), data.max(), 300)
     y = expon.pdf(x, loc=loc, scale=scale)
@@ -25,6 +63,26 @@ def fit_exponential(data: np.ndarray):
 
 
 def fit_maxwell_boltzmann(data: np.ndarray):
+    """
+    Fit a Maxwell-Boltzmann distribution to *data* with fixed location (loc=0).
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        1-D array of positive sample values.
+
+    Returns
+    -------
+    x : numpy.ndarray
+        300 evenly-spaced points spanning
+        ``[max(data.min(), 0), data.max()]``.
+    y : numpy.ndarray
+        Maxwell-Boltzmann PDF evaluated at each point in *x*.
+    label : str
+        Human-readable label including the fitted scale parameter *a*.
+    params : dict
+        ``{"a": float}`` — fitted scale parameter.
+    """
     loc, scale = maxwell.fit(data, floc=0)
     x = np.linspace(max(data.min(), 0), data.max(), 300)
     y = maxwell.pdf(x, loc=loc, scale=scale)
@@ -33,6 +91,29 @@ def fit_maxwell_boltzmann(data: np.ndarray):
 
 
 def fit_poisson(data: np.ndarray):
+    """
+    Estimate the Poisson parameter μ from *data* and compute the PMF.
+
+    The estimator is the sample mean, which is the MLE for the Poisson
+    distribution.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        1-D array of non-negative integer-valued samples (stored as float).
+
+    Returns
+    -------
+    x : numpy.ndarray
+        Integer x-values from ``int(data.min())`` to ``int(data.max())``
+        inclusive, cast to float.
+    y : numpy.ndarray
+        Poisson PMF values at each integer in *x*.
+    label : str
+        Human-readable label including the estimated μ.
+    params : dict
+        ``{"μ": float}`` — estimated mean (sample mean of *data*).
+    """
     mu = data.mean()
     x_int = np.arange(int(data.min()), int(data.max()) + 1)
     y = poisson.pmf(x_int, mu)
@@ -41,7 +122,48 @@ def fit_poisson(data: np.ndarray):
 
 
 def fit_custom(data: np.ndarray, formula: str, param_names: list):
-    """Fit a custom formula (using x and param names) to data density."""
+    """
+    Fit a user-defined formula to the density histogram of *data*.
+
+    The formula is evaluated in a sandboxed namespace that exposes NumPy
+    ufuncs (e.g. ``exp``, ``sin``, ``sqrt``) and math constants.  NumPy
+    ufuncs take priority over their scalar ``math`` counterparts so that
+    array formulas work correctly.
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        1-D array of sample values used to build the histogram.
+    formula : str
+        Python expression in terms of ``x`` and the names listed in
+        *param_names*.  Example: ``"a * exp(-b * x)"``.
+    param_names : list of str
+        Names of the free parameters appearing in *formula*.
+        All initial guesses are set to 1.0.
+
+    Returns
+    -------
+    x : numpy.ndarray
+        300 evenly-spaced points spanning ``[data.min(), data.max()]``.
+    y : numpy.ndarray
+        Formula evaluated at *x* with the optimised parameters.
+    label : str
+        Human-readable label listing each fitted parameter value.
+    params : dict
+        Mapping of parameter name → fitted float value.
+
+    Raises
+    ------
+    scipy.optimize.OptimizeWarning
+        If the covariance of the parameters could not be estimated.
+    RuntimeError
+        If the least-squares minimisation fails entirely.
+
+    Notes
+    -----
+    All initial parameter guesses are 1.0.  Formulas that require very
+    different starting points may not converge from these defaults.
+    """
     import math
     safe_ns = {k: getattr(math, k) for k in dir(math) if not k.startswith("_")}
     safe_ns.update({k: getattr(np, k) for k in dir(np) if not k.startswith("_")})

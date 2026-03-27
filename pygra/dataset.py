@@ -7,9 +7,41 @@ from scipy.signal import savgol_filter
 
 
 class DataSet:
-    """Loads a whitespace-delimited data file, ignoring comment lines starting with '#'."""
+    """
+    Load a whitespace-delimited data file into a NumPy array.
+
+    Lines beginning with ``#`` and blank lines are silently ignored.
+    Rows that cannot be fully converted to floats are skipped and
+    recorded in :attr:`skipped_rows`.
+
+    Parameters
+    ----------
+    path : str
+        Absolute or relative path to the data file.
+
+    Attributes
+    ----------
+    path : str
+        Path passed to the constructor.
+    name : str
+        Filename component of *path* (basename).
+    raw : list of list of float
+        Parsed data rows as a nested list, populated during loading.
+    arr : numpy.ndarray
+        2-D float64 array of shape ``(nrows, ncols)``.
+        Shape is ``(0, 0)`` when no valid rows were found.
+    skipped_rows : list of tuple[int, str]
+        ``(line_number, raw_content)`` for every row that could not be
+        parsed.  Line numbers are 1-based.
+    """
 
     def __init__(self, path: str):
+        """
+        Parameters
+        ----------
+        path : str
+            Path to the data file to load.
+        """
         self.path = path
         self.name = path.split("/")[-1]
         self.raw: list = []
@@ -30,21 +62,87 @@ class DataSet:
 
     @property
     def ncols(self) -> int:
+        """
+        Number of columns in the loaded data.
+
+        Returns
+        -------
+        int
+            ``arr.shape[1]`` when the array is 2-D and non-empty,
+            otherwise ``0``.
+        """
         return self.arr.shape[1] if self.arr.ndim == 2 and self.arr.size > 0 else 0
 
     @property
     def nrows(self) -> int:
+        """
+        Number of data rows.
+
+        Returns
+        -------
+        int
+            ``arr.shape[0]``.
+        """
         return self.arr.shape[0]
 
     def col(self, idx: int):
-        """Return a copy of column idx, or None if out of range."""
+        """
+        Return a copy of column *idx*.
+
+        Parameters
+        ----------
+        idx : int
+            Column index (0-based).
+
+        Returns
+        -------
+        numpy.ndarray or None
+            Copy of the column as a 1-D float64 array, or ``None`` if
+            *idx* is out of range.
+        """
         if idx < 0 or idx >= self.ncols:
             return None
         return self.arr[:, idx].copy()
 
 
 def apply_transform(dataset: DataSet, cfg: dict) -> np.ndarray:
-    """Apply a transform operation to a column of a DataSet."""
+    """
+    Apply a transform operation to one column of a DataSet.
+
+    Parameters
+    ----------
+    dataset : DataSet
+        The dataset to modify.  Extended in-place when
+        ``cfg["new_col"]`` is ``True``; column overwritten when ``False``.
+    cfg : dict
+        Transform configuration with the following keys:
+
+        ``"col"`` : int
+            Target column index.
+        ``"op"`` : str
+            Operation name; must be one of the strings in
+            :data:`constants.TRANSFORM_OPS`.
+        ``"val"`` : float
+            Scalar operand for arithmetic and normalisation operations,
+            or window size for the moving average.
+        ``"xcol"`` : int, optional
+            x-column index; required when *op* is
+            ``"numerical derivative (dy/dx)"``.
+        ``"new_col"`` : bool, optional
+            If ``True`` (default) the result is appended as a new column;
+            if ``False`` it overwrites column ``"col"``.
+
+    Returns
+    -------
+    numpy.ndarray
+        1-D array containing the transform result.
+
+    Raises
+    ------
+    ValueError
+        If the target column does not exist, if division or normalisation
+        by zero is attempted, or if *op* is not a recognised operation.
+    """
     col = dataset.col(cfg["col"])
     if col is None:
         raise ValueError(f"Column {cfg['col']} does not exist.")

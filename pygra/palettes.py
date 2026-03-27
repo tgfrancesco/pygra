@@ -8,7 +8,22 @@ import numpy as np
 
 
 def _mpl_palette(name: str, n: int) -> list:
-    """Extract n colors from a matplotlib colormap."""
+    """
+    Sample *n* colors from a matplotlib colormap.
+
+    Parameters
+    ----------
+    name : str
+        Matplotlib colormap name (e.g. ``"viridis"``).
+    n : int
+        Number of colors to sample, evenly spaced from 0 to 1.
+
+    Returns
+    -------
+    list of str
+        Hex color strings (e.g. ``"#4c02a1"``).  Empty list if the
+        colormap is not found or sampling fails.
+    """
     try:
         import matplotlib.pyplot as plt
         cmap = plt.get_cmap(name)
@@ -19,6 +34,20 @@ def _mpl_palette(name: str, n: int) -> list:
 
 
 def _rgba_to_hex(rgba) -> str:
+    """
+    Convert an RGBA tuple to a CSS hex color string.
+
+    Parameters
+    ----------
+    rgba : sequence of float
+        At least three values in ``[0, 1]`` representing red, green, blue.
+        An optional alpha channel is ignored.
+
+    Returns
+    -------
+    str
+        Lowercase hex string of the form ``"#rrggbb"``.
+    """
     r, g, b = [int(x * 255) for x in rgba[:3]]
     return f"#{r:02x}{g:02x}{b:02x}"
 

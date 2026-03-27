@@ -36,7 +36,18 @@ _DEFAULT_STANDARD = [
 
 
 def apply_basic_palette(name: str):
-    """Set the QColorDialog basic colors grid to a named palette."""
+    """
+    Replace the QColorDialog basic-colors grid with a named palette.
+
+    The palette is tiled to fill all 48 slots.  If *name* is not found
+    in :data:`palettes.PALETTES`, the Qt factory defaults are restored
+    instead.
+
+    Parameters
+    ----------
+    name : str
+        Palette name as it appears in :data:`palettes.PALETTES`.
+    """
     from .palettes import PALETTES
     colors = PALETTES.get(name, [])
     if not colors:
@@ -53,7 +64,7 @@ def apply_basic_palette(name: str):
 
 
 def restore_basic_palette():
-    """Restore Qt default basic colors."""
+    """Reset the QColorDialog basic-colors grid to the Qt factory defaults."""
     for i, hex_c in enumerate(_DEFAULT_STANDARD):
         try:
             QColorDialog.setStandardColor(i, QColor(hex_c))
@@ -63,10 +74,27 @@ def restore_basic_palette():
 
 def pick_color(current: str, parent=None) -> str:
     """
-    Open the Qt color dialog. The basic colors grid reflects whatever
-    palette was set via apply_basic_palette() (called from the menu).
-    Custom colors are saved to and restored from preferences.
-    Returns new hex color string, or current if cancelled.
+    Open a color picker dialog and return the chosen hex color.
+
+    The basic-colors grid reflects whatever palette was last set via
+    :func:`apply_basic_palette`.  Custom colors are restored from
+    preferences before the dialog opens and saved back afterwards.
+    On macOS the "Pick Screen Color" button is hidden because system
+    security restrictions confine it to the dialog window.
+
+    Parameters
+    ----------
+    current : str
+        Hex color string shown as the initial selection (e.g.
+        ``"#1f77b4"``).
+    parent : QWidget, optional
+        Parent widget for the dialog.
+
+    Returns
+    -------
+    str
+        Hex color string chosen by the user, or *current* if the dialog
+        was cancelled.
     """
     try:
         from .preferences import load_prefs, save_prefs
@@ -155,6 +183,21 @@ FIT_FORMULAS = {
 # ---------------------------------------------------------------------------
 
 class StyleDialog(QDialog):
+    """
+    Global style settings dialog.
+
+    Controls font sizes for title, axis labels, ticks, and legend;
+    major and minor tick spacing; grid visibility; plot theme; save DPI;
+    and legend appearance (position, frame, alpha, columns, symbol size).
+
+    Parameters
+    ----------
+    settings : dict
+        Current style settings (see :data:`constants.DEFAULT_STYLE_SETTINGS`).
+    parent : QWidget, optional
+        Parent widget.
+    """
+
     def __init__(self, settings: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Style settings")
@@ -242,6 +285,15 @@ class StyleDialog(QDialog):
         form.addRow(sep)
 
     def get_settings(self) -> dict:
+        """
+        Return the current dialog values as a style-settings dict.
+
+        Returns
+        -------
+        dict
+            Updated style settings compatible with
+            :data:`constants.DEFAULT_STYLE_SETTINGS`.
+        """
         return {
             "title_fs":   self.title_fs.value(),
             "label_fs":   self.label_fs.value(),
@@ -268,6 +320,23 @@ class StyleDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 class TransformDialog(QDialog):
+    """
+    Data-transform configuration dialog.
+
+    Allows the user to select a column, choose a transform operation
+    from :data:`constants.TRANSFORM_OPS`, supply a scalar value or
+    window size, specify an x-column for derivative operations, and
+    decide whether to append a new column or overwrite the target.
+
+    Parameters
+    ----------
+    ncols : int
+        Number of columns currently in the active dataset; used to set
+        the range of the column spinboxes.
+    parent : QWidget, optional
+        Parent widget.
+    """
+
     def __init__(self, ncols: int, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Transform data")
@@ -301,6 +370,15 @@ class TransformDialog(QDialog):
         layout.addWidget(btns)
 
     def get_config(self) -> dict:
+        """
+        Return the transform configuration chosen by the user.
+
+        Returns
+        -------
+        dict
+            Keys: ``"col"`` (int), ``"op"`` (str), ``"val"`` (float),
+            ``"xcol"`` (int), ``"new_col"`` (bool).
+        """
         return {
             "col":     self.col_spin.value(),
             "op":      self.op.currentText(),
@@ -315,7 +393,18 @@ class TransformDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 class AppearanceDialog(QDialog):
-    """Per-series visual appearance: label, line, marker, colors."""
+    """
+    Per-series visual appearance dialog: label, line, marker, and colors.
+
+    Parameters
+    ----------
+    cfg : dict
+        Current series style configuration.  Expected keys:
+        ``"label"``, ``"linestyle"``, ``"linewidth"``, ``"marker"``,
+        ``"markersize"``, ``"color"``, ``"face_color"``.
+    parent : QWidget, optional
+        Parent widget.
+    """
 
     def __init__(self, cfg: dict, parent=None):
         super().__init__(parent)
@@ -391,6 +480,17 @@ class AppearanceDialog(QDialog):
                 self._refresh_btn(self.face_btn, self._face_color)
 
     def get_config(self) -> dict:
+        """
+        Return the appearance configuration chosen by the user.
+
+        Returns
+        -------
+        dict
+            Keys: ``"label"`` (str), ``"linestyle"`` (str),
+            ``"linewidth"`` (float), ``"marker"`` (str),
+            ``"markersize"`` (float), ``"color"`` (str),
+            ``"face_color"`` (str).
+        """
         return {
             "label":      self.label_edit.text(),
             "linestyle":  LINESTYLES[self.linestyle.currentIndex()],
@@ -407,7 +507,18 @@ class AppearanceDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 class HistAppearanceDialog(QDialog):
-    """Histogram visual appearance: bins, normalisation, colors."""
+    """
+    Histogram visual appearance dialog: bins, normalisation, and colors.
+
+    Parameters
+    ----------
+    cfg : dict
+        Current histogram style configuration.  Expected keys:
+        ``"hist_bins"``, ``"hist_nbins"``, ``"hist_norm"``,
+        ``"color"``, ``"face_color"``.
+    parent : QWidget, optional
+        Parent widget.
+    """
 
     def __init__(self, cfg: dict, parent=None):
         super().__init__(parent)
@@ -473,6 +584,16 @@ class HistAppearanceDialog(QDialog):
                 self._refresh_btn(self.edge_btn, self._face_color)
 
     def get_config(self) -> dict:
+        """
+        Return the histogram appearance configuration chosen by the user.
+
+        Returns
+        -------
+        dict
+            Keys: ``"hist_bins"`` (str), ``"hist_nbins"`` (int),
+            ``"hist_norm"`` (str), ``"color"`` (str),
+            ``"face_color"`` (str).
+        """
         return {
             "hist_bins":  self.hist_bins.currentText(),
             "hist_nbins": self.hist_nbins.value(),
@@ -488,9 +609,21 @@ class HistAppearanceDialog(QDialog):
 
 class FitDialog(QDialog):
     """
-    Unified fit & interpolation dialog.
-    Predefined methods show their formula (read-only).
-    Custom fields enabled only when 'Custom...' is selected.
+    Unified fit and interpolation dialog.
+
+    Predefined methods display their formula read-only.  The custom
+    formula and parameter-name fields are enabled only when
+    ``"Custom..."`` is selected.  The polynomial degree spinner is
+    enabled only for ``"polynomial fit"``.
+
+    Parameters
+    ----------
+    cfg : dict
+        Previous fit configuration used to restore dialog state.
+        Expected keys: ``"fit_method"``, ``"poly_deg"``,
+        ``"custom_formula"``, ``"custom_params"``, ``"fit_color"``.
+    parent : QWidget, optional
+        Parent widget.
     """
 
     def __init__(self, cfg: dict, parent=None):
@@ -567,6 +700,16 @@ class FitDialog(QDialog):
             self._refresh_btn(self.color_btn, self._color)
 
     def get_config(self) -> dict:
+        """
+        Return the fit configuration chosen by the user.
+
+        Returns
+        -------
+        dict
+            Keys: ``"fit_method"`` (str), ``"poly_deg"`` (int),
+            ``"custom_formula"`` (str), ``"custom_params"`` (list of str),
+            ``"fit_color"`` (str).
+        """
         return {
             "fit_method":     self.method.currentText(),
             "poly_deg":       self.poly_deg.value(),
@@ -581,6 +724,20 @@ class FitDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 class StatsDialog(QDialog):
+    """
+    Read-only statistics table for all columns of a dataset.
+
+    Displays mean, median, standard deviation, min, max, and row count
+    for each column.
+
+    Parameters
+    ----------
+    dataset : DataSet
+        The dataset whose column statistics are displayed.
+    parent : QWidget, optional
+        Parent widget.
+    """
+
     def __init__(self, dataset, parent=None):
         super().__init__(parent)
         self.setWindowTitle(f"Statistics — {dataset.name}")
@@ -621,8 +778,17 @@ class StatsDialog(QDialog):
 class DataEditorDialog(QDialog):
     """
     Editable table view of a dataset.
-    Changes are applied to a copy — the original file is never modified.
-    Rows can be deleted; new rows can be added.
+
+    Changes are applied directly to ``dataset.arr`` and ``dataset.raw``
+    on acceptance; the original file on disk is never modified.  Rows
+    can be deleted and new zero-filled rows can be appended.
+
+    Parameters
+    ----------
+    dataset : DataSet
+        The dataset to edit.  Modified in-place when the dialog is accepted.
+    parent : QWidget, optional
+        Parent widget.
     """
 
     def __init__(self, dataset, parent=None):
@@ -710,7 +876,25 @@ class DataEditorDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 class PaletteDialog(QDialog):
-    """Browse scientific color palettes and pick a color."""
+    """
+    Scientific color palette browser.
+
+    Groups palettes by category (colorblind-friendly, matplotlib
+    categorical, sequential/diverging, CSS colors).  Clicking a color
+    swatch sets :attr:`selected_color`; accepting the dialog returns it
+    to the caller.
+
+    Parameters
+    ----------
+    parent : QWidget, optional
+        Parent widget.
+
+    Attributes
+    ----------
+    selected_color : str or None
+        The hex color string last clicked by the user, or ``None`` if no
+        color has been selected yet.
+    """
 
     def __init__(self, parent=None):
         super().__init__(parent)

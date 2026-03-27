@@ -16,8 +16,29 @@ from .dialogs import AppearanceDialog, HistAppearanceDialog
 
 class DatasetWidget(QWidget):
     """
-    Compact per-series control panel.
-    Style options live in Appearance dialogs; analysis in the menu bar.
+    Compact per-series control panel embedded in the left tab widget.
+
+    Shows dataset name and dimensions, a histogram-mode toggle, column
+    selectors for x, y, dx, dy (line mode) or a single column (histogram
+    mode), an Appearance button, a duplicate-series button, and a
+    visibility checkbox.  Style details are edited through
+    :class:`~dialogs.AppearanceDialog` or
+    :class:`~dialogs.HistAppearanceDialog`.
+
+    Parameters
+    ----------
+    dataset : DataSet
+        The dataset this widget controls.
+    color : str
+        Initial hex color string for the series (e.g. ``"#1f77b4"``).
+    on_duplicate : callable, optional
+        Called with *dataset* when the "Add another plot" button is
+        clicked.
+    on_replot : callable, optional
+        Called with no arguments whenever a style change requires a
+        full replot.
+    parent : QWidget, optional
+        Parent widget.
     """
 
     def __init__(self, dataset, color: str, on_duplicate=None,
@@ -158,6 +179,12 @@ class DatasetWidget(QWidget):
             self.on_duplicate(self.dataset)
 
     def refresh_col_ranges(self):
+        """
+        Update the maximum value of all column spinboxes.
+
+        Should be called after the underlying dataset gains or loses
+        columns (e.g. after a transform operation adds a new column).
+        """
         nc = max(0, self.dataset.ncols - 1)
         for w in [self.xcol, self.ycol, self.dxcol, self.dycol, self.hcol]:
             w.setMaximum(nc)
@@ -167,6 +194,21 @@ class DatasetWidget(QWidget):
     # ------------------------------------------------------------------
 
     def get_config(self) -> dict:
+        """
+        Return the current widget configuration as a plotting dict.
+
+        In line mode the result includes series-style keys; in histogram
+        mode it includes histogram-style keys instead.
+
+        Returns
+        -------
+        dict
+            Keys always present: ``"label"`` (str), ``"visible"`` (bool),
+            ``"hist_mode"`` (bool), ``"xcol"``, ``"ycol"``, ``"dxcol"``,
+            ``"dycol"``, ``"hcol"`` (int).  Additional keys from
+            :attr:`_series_style` (line mode) or :attr:`_hist_style`
+            (histogram mode) are merged in.
+        """
         hist = self.hist_mode.isChecked()
         cfg = {
             "label":     self._series_style.get("label", self.dataset.name),

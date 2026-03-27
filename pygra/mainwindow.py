@@ -37,7 +37,35 @@ from .preferences import load_prefs, save_prefs, PREFS_PATH
 
 
 class FitLayer:
-    """Represents a fit/interpolation curve applied to a dataset series."""
+    """
+    Data container for a single fit or interpolation curve.
+
+    Instances are created by :meth:`MainWindow._fit_active` and stored
+    in :attr:`MainWindow.fit_layers`.
+
+    Parameters
+    ----------
+    label : str
+        Display label shown in the fit panel and plot legend.
+    x : numpy.ndarray
+        x-coordinates of the fit curve.
+    y : numpy.ndarray
+        y-coordinates of the fit curve.
+    color : str
+        Hex color string for the curve.
+    source_label : str
+        Label of the dataset series this fit was computed from.
+    linestyle : str, optional
+        Matplotlib linestyle string.  Default is ``"--"``.
+    linewidth : float, optional
+        Line width in points.  Default is ``1.8``.
+
+    Attributes
+    ----------
+    visible : bool
+        Whether the layer is currently shown on the plot.
+        Initialised to ``True``.
+    """
 
     def __init__(self, label: str, x: np.ndarray, y: np.ndarray,
                  color: str, source_label: str,
@@ -53,7 +81,26 @@ class FitLayer:
 
 
 class FitLayerWidget(QWidget):
-    """Small widget in the fit panel for one FitLayer. Double-click to edit appearance."""
+    """
+    Row widget in the fit panel representing one :class:`FitLayer`.
+
+    Displays a visibility checkbox, a color dot, the layer label with its
+    source series, and a remove button.  Double-clicking the label row
+    opens the fit-layer appearance editor.
+
+    Parameters
+    ----------
+    layer : FitLayer
+        The fit layer this widget controls.
+    on_remove : callable
+        Called with *layer* when the ✕ button is clicked.
+    on_toggle : callable
+        Called with ``(layer, visible: bool)`` when the checkbox changes.
+    on_edit : callable
+        Called with ``(layer, widget)`` on double-click.
+    parent : QWidget, optional
+        Parent widget.
+    """
 
     def __init__(self, layer: FitLayer, on_remove, on_toggle, on_edit, parent=None):
         super().__init__(parent)
@@ -92,7 +139,27 @@ class FitLayerWidget(QWidget):
 
 
 class MainWindow(QMainWindow):
-    """Application main window."""
+    """
+    Application main window for PyGRA.
+
+    Manages the left-side series panel (one :class:`~widgets.DatasetWidget`
+    per series tab), the matplotlib canvas, axis controls, a fit-layer
+    panel, the menu bar, and a custom toolbar.  Application state can be
+    saved and restored as JSON session files.
+
+    Attributes
+    ----------
+    datasets : list of DataSet
+        All loaded datasets.  A single dataset may be shared between
+        multiple series widgets (via the duplicate action).
+    dataset_widgets : list of DatasetWidget
+        One widget per visible series tab, in tab order.
+    fit_layers : list of FitLayer
+        Fit and interpolation curves currently overlaid on the plot.
+    style_settings : dict
+        Active global style settings; mirrors
+        :data:`constants.DEFAULT_STYLE_SETTINGS`.
+    """
 
     def __init__(self):
         super().__init__()

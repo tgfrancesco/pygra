@@ -44,6 +44,27 @@ Examples:
 
 
 def _parse_interleaved(argv: list) -> dict:
+    """
+    Parse the command-line argument list into a structured dict.
+
+    Supports interleaved ``--file``/``--x``/``--y`` groups so that each
+    ``--file`` can carry its own column specification, and also handles
+    positional file arguments and a trailing ``--x``/``--y`` that applies
+    to all files.  Prints :data:`HELP_TEXT` and exits if ``-h`` or
+    ``--help`` is present.
+
+    Parameters
+    ----------
+    argv : list of str
+        Argument strings, typically ``sys.argv[1:]``.
+
+    Returns
+    -------
+    dict
+        ``{"files": list[dict], "load": str | None}`` where each file
+        dict has keys ``"path"`` (str), ``"xcol"`` (int), and
+        ``"ycol"`` (int).
+    """
     if any(tok in ("-h", "--help") for tok in argv):
         print(HELP_TEXT)
         sys.exit(0)
@@ -93,6 +114,13 @@ def _parse_interleaved(argv: list) -> dict:
 
 
 def main():
+    """
+    Entry point for the ``pygra`` command-line interface.
+
+    Parses ``sys.argv``, creates the Qt application and
+    :class:`~pygra.mainwindow.MainWindow`, optionally restores a saved
+    session or pre-loads data files, then starts the Qt event loop.
+    """
     args = _parse_interleaved(sys.argv[1:])
 
     from PyQt5.QtWidgets import QApplication
