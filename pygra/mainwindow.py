@@ -26,6 +26,7 @@ from .dataset import DataSet, apply_transform
 from .dialogs import (
     StyleDialog, TransformDialog, StatsDialog, FitDialog,
     AppearanceDialog, DataEditorDialog,
+    apply_basic_palette, restore_basic_palette,
 )
 from .fitting import FIT_FUNCTIONS, fit_custom
 from .widgets import DatasetWidget
@@ -132,6 +133,21 @@ class MainWindow(QMainWindow):
         view_menu = mb.addMenu("View")
         self._act(view_menu, "Style settings...", "Ctrl+,", self._open_style)
         view_menu.addSeparator()
+
+        # Color palette submenu
+        from PyQt5.QtWidgets import QMenu
+        from .palettes import PALETTE_GROUPS
+        palette_menu = view_menu.addMenu("Color palette")
+        default_act = palette_menu.addAction("Qt default")
+        default_act.triggered.connect(lambda: self._set_palette(""))
+        palette_menu.addSeparator()
+        for group, names in PALETTE_GROUPS.items():
+            grp_menu = palette_menu.addMenu(group)
+            for name in names:
+                act = grp_menu.addAction(name)
+                act.triggered.connect(lambda checked, n=name: self._set_palette(n))
+
+        view_menu.addSeparator()
         self._act(view_menu, "Save preferences",  None,     self._save_preferences)
         self._act(view_menu, "Reset preferences", None,     self._reset_preferences)
 
@@ -173,6 +189,8 @@ class MainWindow(QMainWindow):
         # series tabs
         self.datasets_tab = QTabWidget()
         self.datasets_tab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.datasets_tab.setTabsClosable(True)
+        self.datasets_tab.tabCloseRequested.connect(self._close_tab)
         lv.addWidget(self.datasets_tab, stretch=1)
 
         # fit layer panel
@@ -299,6 +317,10 @@ class MainWindow(QMainWindow):
         sp = p.get("splitter_pos", 330)
         total = self._splitter.width() or (p.get("window_w", 1200))
         self._splitter.setSizes([sp, max(1, total - sp)])
+        # restore saved color palette
+        saved_palette = p.get("last_basic_palette", "")
+        if saved_palette:
+            apply_basic_palette(saved_palette)
 
     def _collect_geometry(self) -> dict:
         geo  = self.geometry()
@@ -310,6 +332,22 @@ class MainWindow(QMainWindow):
             "window_h":   geo.height(),
             "splitter_pos": sizes[0] if sizes else 330,
         }
+
+    def _set_palette(self, name: str):
+        """Apply a color palette to the basic colors grid and save to prefs."""
+        if name:
+            apply_basic_palette(name)
+        else:
+            restore_basic_palette()
+        self._prefs["last_basic_palette"] = name
+        try:
+            from .preferences import save_prefs
+            prefs = dict(self._prefs)
+            prefs.update(self._collect_geometry())
+            prefs.update(self.style_settings)
+            save_prefs(prefs)
+        except Exception:
+            pass
 
     def _save_preferences(self):
         """Save current geometry + style settings as user preferences."""
@@ -419,6 +457,19 @@ class MainWindow(QMainWindow):
         self.datasets_tab.addTab(dw, tab_name)
         self.datasets_tab.setCurrentWidget(dw)
         return dw
+
+    def _close_tab(self, index: int):
+        """Remove a series tab and its associated data."""
+        if index < 0 or index >= len(self.dataset_widgets):
+            return
+        dw = self.dataset_widgets[index]
+        # also remove the dataset if no other widget references it
+        ds = dw.dataset
+        self.dataset_widgets.pop(index)
+        self.datasets_tab.removeTab(index)
+        other_refs = [w for w in self.dataset_widgets if w.dataset is ds]
+        if not other_refs and ds in self.datasets:
+            self.datasets.remove(ds)
 
     def _export_active(self):
         idx = self.datasets_tab.currentIndex()

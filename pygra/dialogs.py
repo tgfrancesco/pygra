@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QSpinBox, QDoubleSpinBox, QCheckBox, QComboBox, QFrame,
     QLabel, QLineEdit, QTableWidget, QTableWidgetItem, QHeaderView,
     QPushButton, QGroupBox, QColorDialog, QMessageBox,
+    QWidget, QScrollArea, QListWidget, QGridLayout, QSizePolicy,
 )
 from PyQt5.QtGui import QColor
 
@@ -18,33 +19,91 @@ from .constants import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Basic colors palette management
+# ---------------------------------------------------------------------------
+
+_DEFAULT_STANDARD = [
+    "#000000","#ffffff","#808080","#c0c0c0","#800000","#ff0000","#808000","#ffff00",
+    "#008000","#00ff00","#008080","#00ffff","#000080","#0000ff","#800080","#ff00ff",
+    "#804000","#ff8000","#004080","#0080ff","#408000","#80ff00","#004040","#008080",
+    "#400080","#8000ff","#804040","#ff8080","#408040","#80ff80","#004080","#0080c0",
+    "#804080","#ff80ff","#808040","#ffff80","#400000","#ff4040","#004000","#40ff40",
+    "#000040","#4040ff","#440044","#ff44ff","#444400","#ffff44","#004444","#44ffff",
+]
+
+
+def apply_basic_palette(name: str):
+    """Set the QColorDialog basic colors grid to a named palette."""
+    from .palettes import PALETTES
+    colors = PALETTES.get(name, [])
+    if not colors:
+        restore_basic_palette()
+        return
+    tiled = []
+    while len(tiled) < 48:
+        tiled.extend(colors)
+    for i, hex_c in enumerate(tiled[:48]):
+        try:
+            QColorDialog.setStandardColor(i, QColor(hex_c))
+        except Exception:
+            pass
+
+
+def restore_basic_palette():
+    """Restore Qt default basic colors."""
+    for i, hex_c in enumerate(_DEFAULT_STANDARD):
+        try:
+            QColorDialog.setStandardColor(i, QColor(hex_c))
+        except Exception:
+            pass
+
+
 def pick_color(current: str, parent=None) -> str:
     """
-    Open a QColorDialog pre-loaded with saved custom colors.
+    Open the Qt color dialog. The basic colors grid reflects whatever
+    palette was set via apply_basic_palette() (called from the menu).
+    Custom colors are saved to and restored from preferences.
     Returns new hex color string, or current if cancelled.
-    Saves chosen custom colors back to preferences.
     """
-    from PyQt5.QtGui import QColor
     try:
         from .preferences import load_prefs, save_prefs
         prefs = load_prefs()
         custom = prefs.get("custom_colors", [])
     except Exception:
         custom = []
+        prefs = {}
 
-    # populate QColorDialog custom color slots (max 16)
     for i, hex_c in enumerate(custom[:16]):
         try:
             QColorDialog.setCustomColor(i, QColor(hex_c))
         except Exception:
             pass
 
-    c = QColorDialog.getColor(QColor(current), parent,
-                              options=QColorDialog.DontUseNativeDialog)
+    import sys
+    if sys.platform == "darwin":
+        # On macOS, "Pick Screen Color" only captures within the dialog window
+        # due to system security restrictions — hide it to avoid confusion
+        cd = QColorDialog(QColor(current), parent)
+        cd.setOptions(QColorDialog.DontUseNativeDialog)
+        try:
+            from PyQt5.QtWidgets import QAbstractButton
+            for btn in cd.findChildren(QAbstractButton):
+                if "screen" in btn.text().lower():
+                    btn.hide()
+                    break
+        except Exception:
+            pass
+        cd.exec_()
+        c = cd.currentColor() if cd.result() == QDialog.Accepted else QColor()
+    else:
+        c = QColorDialog.getColor(
+            QColor(current), parent,
+            options=QColorDialog.DontUseNativeDialog,
+        )
     if not c.isValid():
         return current
 
-    # collect custom colors back from dialog
     new_custom = []
     for i in range(16):
         try:
@@ -53,7 +112,6 @@ def pick_color(current: str, parent=None) -> str:
                 new_custom.append(cc.name())
         except Exception:
             pass
-
     try:
         prefs["custom_colors"] = list(dict.fromkeys(new_custom))[:16]
         save_prefs(prefs)
@@ -61,6 +119,8 @@ def pick_color(current: str, parent=None) -> str:
         pass
 
     return c.name()
+
+
 
 # All fit/interpolation methods in one list
 FIT_METHODS = [
@@ -139,24 +199,6 @@ class StyleDialog(QDialog):
         self.dpi = QSpinBox(); self.dpi.setRange(72, 600); self.dpi.setValue(s.get("dpi", 150))
         form.addRow("Save DPI:", self.dpi)
 
-        self.fig_size_auto = QCheckBox("Use current window size")
-        self.fig_size_auto.setChecked(s.get("fig_size_auto", True))
-        self.fig_size_auto.toggled.connect(self._toggle_fig_size)
-        form.addRow("Figure size (for save):", self.fig_size_auto)
-
-        self.fig_w = QDoubleSpinBox(); self.fig_w.setRange(1, 100); self.fig_w.setSingleStep(0.5)
-        self.fig_w.setValue(s.get("fig_w", 8.0)); self.fig_w.setSuffix(" in")
-        form.addRow("Width:", self.fig_w)
-
-        self.fig_h = QDoubleSpinBox(); self.fig_h.setRange(1, 100); self.fig_h.setSingleStep(0.5)
-        self.fig_h.setValue(s.get("fig_h", 5.0)); self.fig_h.setSuffix(" in")
-        form.addRow("Height:", self.fig_h)
-
-        # set initial enabled state
-        auto = s.get("fig_size_auto", True)
-        self.fig_w.setEnabled(not auto)
-        self.fig_h.setEnabled(not auto)
-
         self._sep(form)
 
         # legend options
@@ -196,10 +238,6 @@ class StyleDialog(QDialog):
         sep = QFrame(); sep.setFrameShape(QFrame.HLine); sep.setFrameShadow(QFrame.Sunken)
         form.addRow(sep)
 
-    def _toggle_fig_size(self, auto: bool):
-        self.fig_w.setEnabled(not auto)
-        self.fig_h.setEnabled(not auto)
-
     def get_settings(self) -> dict:
         return {
             "title_fs":   self.title_fs.value(),
@@ -214,9 +252,6 @@ class StyleDialog(QDialog):
             "grid_minor": self.grid_minor.isChecked(),
             "theme":           self.theme.currentText(),
             "dpi":             self.dpi.value(),
-            "fig_size_auto":   self.fig_size_auto.isChecked(),
-            "fig_w":           self.fig_w.value(),
-            "fig_h":           self.fig_h.value(),
             "legend_loc":      self.legend_loc.currentText(),
             "legend_frameon":  self.legend_frameon.isChecked(),
             "legend_alpha":    self.legend_alpha.value(),
@@ -665,3 +700,83 @@ class DataEditorDialog(QDialog):
         self.dataset.arr = np.array(data)
         self.dataset.raw = data
         self.accept()
+
+
+# ---------------------------------------------------------------------------
+# PaletteDialog
+# ---------------------------------------------------------------------------
+
+class PaletteDialog(QDialog):
+    """Browse scientific color palettes and pick a color."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Scientific color palettes")
+        self.selected_color = None
+        self._build()
+        self.resize(500, 400)
+
+    def _build(self):
+        from .palettes import PALETTES, PALETTE_GROUPS
+        layout = QHBoxLayout(self)
+
+        left = QVBoxLayout()
+        self.group_list = QListWidget(); self.group_list.setMaximumWidth(170)
+        for group in PALETTE_GROUPS:
+            self.group_list.addItem(group)
+        self.group_list.currentTextChanged.connect(self._on_group)
+        left.addWidget(QLabel("Group:")); left.addWidget(self.group_list)
+
+        self.palette_list = QListWidget(); self.palette_list.setMaximumWidth(170)
+        self.palette_list.currentTextChanged.connect(self._on_palette)
+        left.addWidget(QLabel("Palette:")); left.addWidget(self.palette_list)
+        layout.addLayout(left)
+
+        right = QVBoxLayout()
+        right.addWidget(QLabel("Click a color to select it:"))
+        scroll = QScrollArea(); scroll.setWidgetResizable(True)
+        self._swatch_container = QWidget()
+        self._swatch_layout = QGridLayout(self._swatch_container)
+        self._swatch_layout.setSpacing(3)
+        scroll.setWidget(self._swatch_container)
+        right.addWidget(scroll)
+
+        self._selected_lbl = QLabel("Selected: —"); self._selected_lbl.setFixedHeight(28)
+        right.addWidget(self._selected_lbl)
+
+        btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btns.accepted.connect(self.accept); btns.rejected.connect(self.reject)
+        right.addWidget(btns)
+        layout.addLayout(right)
+
+        if self.group_list.count():
+            self.group_list.setCurrentRow(0)
+
+    def _on_group(self, group):
+        from .palettes import PALETTE_GROUPS
+        self.palette_list.clear()
+        for name in PALETTE_GROUPS.get(group, []):
+            self.palette_list.addItem(name)
+        if self.palette_list.count():
+            self.palette_list.setCurrentRow(0)
+
+    def _on_palette(self, name):
+        from .palettes import PALETTES
+        while self._swatch_layout.count():
+            item = self._swatch_layout.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+        for i, hex_c in enumerate(PALETTES.get(name, [])):
+            btn = QPushButton(); btn.setFixedSize(40, 40)
+            btn.setToolTip(hex_c)
+            btn.setStyleSheet(f"background-color: {hex_c}; border: 2px solid #888; border-radius: 4px;")
+            btn.clicked.connect(lambda checked, c=hex_c: self._select(c))
+            self._swatch_layout.addWidget(btn, i // 8, i % 8)
+
+    def _select(self, color: str):
+        self.selected_color = color
+        light = sum(int(color.lstrip("#")[i:i+2], 16) for i in (0,2,4)) / 3 > 128
+        self._selected_lbl.setText(f"Selected: {color}")
+        self._selected_lbl.setStyleSheet(
+            f"background-color: {color}; color: {'#000' if light else '#fff'};"
+            f"padding: 4px; border-radius: 4px;"
+        )

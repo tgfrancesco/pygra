@@ -24,6 +24,8 @@ DEFAULT_PREFS = {
 
     # saved custom colors (list of hex strings)
     "custom_colors": [],
+    # last selected basic colors palette
+    "last_basic_palette": "",
 }
 
 

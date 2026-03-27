@@ -20,11 +20,17 @@
 - Fit results appear automatically as dashed overlay curves, listed in a dedicated panel with per-layer visibility and remove controls
 - Data transforms: multiply/divide/add/subtract, normalize, numerical derivative, moving average
 - Appearance dialog: line style, width, marker shape, size, colors — triggers auto-replot on OK
+- Draggable legend with style options (frame, transparency, columns, symbol size, position)
+- Color picker with scientific palette browser (colorblind-friendly, matplotlib, sequential, CSS)
 - Axis labels, title, log scale, manual limits
 - Font size control, major/minor ticks and grid
 - Plot themes (default, dark, seaborn, ggplot, bmh, grayscale)
-- Save figure as PNG, PDF, SVG with configurable DPI
+- Configurable figure size and DPI for saving
+- Save figure as PNG, PDF, SVG
 - Save/load full sessions as JSON
+- Persistent user preferences (window geometry, style, color palette)
+- Edit data in a table (add/delete rows, non-destructive)
+- Statistics dialog per series
 - Minimal custom toolbar: Zoom, Pan, Reset
 
 ## Installation
@@ -47,7 +53,8 @@ pip install -e .
 
 ```bash
 pip install -r requirements.txt
-pip install -e .```
+pip install -e .
+```
 
 ### Linux: dock/launcher icon
 
@@ -69,10 +76,10 @@ pygra
 
 **Left panel:**
 - **Load files** — opens one or more data files
-- **Series tabs** — one tab per loaded series; each tab has column selectors, label, Appearance button, visibility checkbox
-- **Fit & interpolation layers** — lists active fit curves with visibility toggle and remove button
+- **Series tabs** — one tab per loaded series; each tab has column selectors, Appearance button, visibility checkbox, close button (✕)
+- **Fit & interpolation layers** — lists active fit curves with visibility toggle, remove button, and double-click to edit style
 - **Axis settings** — labels, title, log scale, limits
-- **Plot** — renders the figure
+- **Plot** — renders the figure (also Ctrl+Enter)
 
 **Menu bar:**
 
@@ -80,11 +87,24 @@ pygra
 |----------|----------------------------|------------|
 | File     | Load session               | Ctrl+L     |
 | File     | Save session               | Ctrl+S     |
+| File     | Save figure                | Ctrl+E     |
 | File     | Export active data         | —          |
 | Analysis | Transform data             | Ctrl+T     |
 | Analysis | Statistics                 | Ctrl+I     |
+| Analysis | Edit data                  | Ctrl+D     |
 | Analysis | Fit & Interpolation        | Ctrl+F     |
 | View     | Style settings             | Ctrl+,     |
+| View     | Color palette              | —          |
+| View     | Save preferences           | —          |
+| View     | Reset preferences          | —          |
+
+### Color picker
+
+The color picker uses the Qt dialog (same appearance on all platforms). The **Basic colors** grid can be replaced with any scientific palette via **View → Color palette**. The chosen palette is saved in preferences and restored at next launch.
+
+On **Linux**, the **Pick Screen Color** button captures any color visible on screen. On **macOS** and **Windows** this button is hidden, as platform security restrictions prevent capturing colors outside the dialog window.
+
+Custom colors added via **Add to Custom Colors** are saved in preferences and restored at next launch on all platforms.
 
 ### Command-line interface
 
@@ -93,12 +113,12 @@ pygra
 pygra
 
 # positional arguments — shell expands the glob
-pygra *file*.dat --x 0 --y 5
+pygra *wham_TI.dat
 
 # same columns for all files
 pygra file1.dat file2.dat --x 0 --y 3
 
-# per-file column specification (using --file)
+# per-file column specification
 pygra --file file1.dat --x 0 --y 3 --file file2.dat --x 0 --y 5
 
 # load a saved session
@@ -129,24 +149,27 @@ Whitespace-delimited, one row per data point. Lines starting with `#` are ignore
 
 ```
 PyGRA/
-├── pygra.py              # convenience script
+├── pygra.py                  # convenience script
 ├── pyproject.toml
 ├── environment.yml
 ├── requirements.txt
-├── pygra_logo.png
+├── install_icon_linux.sh     # Linux icon installer
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE
+├── logo/                     # application icons
 └── pygra/
     ├── __init__.py
-    ├── main.py           # CLI entry point (pygra command)
-    ├── constants.py      # shared constants
-    ├── dataset.py        # data loading and transforms
-    ├── fitting.py        # distribution and custom fits
-    ├── dialogs.py        # all dialogs
-    ├── widgets.py        # DatasetWidget
-    ├── mainwindow.py     # MainWindow with FitLayer management
-    └── state.py          # session save/load
+    ├── main.py               # CLI entry point (pygra command)
+    ├── constants.py          # shared constants and defaults
+    ├── dataset.py            # data loading and transforms
+    ├── fitting.py            # distribution and custom fits
+    ├── palettes.py           # scientific color palettes
+    ├── dialogs.py            # all dialogs
+    ├── widgets.py            # DatasetWidget (per-series panel)
+    ├── mainwindow.py         # MainWindow with FitLayer management
+    ├── state.py              # session save/load
+    └── preferences.py        # persistent user preferences
 ```
 
 ## Dependencies
