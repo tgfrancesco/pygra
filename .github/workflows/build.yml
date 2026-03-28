@@ -30,12 +30,21 @@ jobs:
             --icon logo/pygra_icon.icns \
             pygra.py
 
+      - name: Install create-dmg
+        run: brew install create-dmg
+
       - name: Create DMG
         run: |
-          hdiutil create -volname PyGRA \
-            -srcfolder dist/PyGRA.app \
-            -ov -format UDZO \
-            dist/PyGRA-macos.dmg
+          create-dmg \
+            --volname "PyGRA" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 128 \
+            --icon "PyGRA.app" 150 185 \
+            --hide-extension "PyGRA.app" \
+            --app-drop-link 450 185 \
+            dist/PyGRA-macos.dmg \
+            dist/PyGRA.app
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2

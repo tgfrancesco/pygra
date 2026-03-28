@@ -17,9 +17,8 @@ Pre-built installers are available on the
      - Notes
    * - macOS
      - ``PyGRA-macos.dmg``
-     - Mount and drag to Applications. On first launch, go to
-       **System Settings → Privacy & Security → Open Anyway**
-       if macOS blocks the app.
+     - Open the DMG, drag **PyGRA** to the **Applications** folder.
+       On first launch macOS may block the app — see :ref:`macos-security` below.
    * - Linux
      - ``PyGRA-linux.tar.gz``
      - Extract and run ``./PyGRA/PyGRA`` directly.
@@ -27,6 +26,22 @@ Pre-built installers are available on the
      - ``PyGRA.exe``
      - Run directly. Windows may show a SmartScreen warning —
        click **More info → Run anyway**.
+
+.. _macos-security:
+
+macOS security note
+-------------------
+
+Since PyGRA is not signed with an Apple Developer certificate, macOS may block
+it on first launch with the message *"Apple cannot verify that PyGRA does not
+contain malware"*. To open it:
+
+1. Open **System Settings → Privacy & Security**
+2. Scroll down to the Security section
+3. Click **"Open Anyway"** next to the PyGRA message
+4. Confirm by clicking **"Open"** in the dialog that appears
+
+This is a one-time step — subsequent launches will open normally.
 
 Developer installation
 ----------------------
