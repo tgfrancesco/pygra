@@ -6,9 +6,12 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platform">
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/python-3.11+-yellow" alt="Python Version">
+  <a href="https://pygra.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/pygra/badge/?version=latest" alt="Documentation"></a>
 </p>
 
 **PyGRA** is an interactive scientific data plotter built with Python, PyQt5, and Matplotlib, inspired by *xmgrace*.
+
+📖 **[Documentation](https://pygra.readthedocs.io/en/latest/)**
 
 ## Features
 
@@ -113,7 +116,7 @@ Custom colors added via **Add to Custom Colors** are saved in preferences and re
 pygra
 
 # positional arguments — shell expands the glob
-pygra *file_*.dat
+pygra *wham_TI.dat
 
 # same columns for all files
 pygra file1.dat file2.dat --x 0 --y 3
@@ -179,16 +182,6 @@ PyGRA/
 - scipy >= 1.10
 - matplotlib >= 3.7
 - PyQt5 >= 5.15
-
-## Development
-
-Install `pytest` and run the test suite from the project root:
-
-```bash
-pytest tests/ -q
-```
-
-Tests cover `DataSet` loading, all `apply_transform` operations, and all fitting functions. They import only `numpy`, `scipy`, and `pygra` — no display or PyQt5 required, so they run in headless CI environments.
 
 ## License
 
