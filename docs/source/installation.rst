@@ -1,8 +1,41 @@
 Installation
 ============
 
+Download
+--------
+
+Pre-built installers are available on the
+`Releases page <https://github.com/tgfrancesco/PyGRA/releases/latest>`_
+— no Python installation required.
+
+.. list-table::
+   :widths: 15 30 55
+   :header-rows: 1
+
+   * - Platform
+     - File
+     - Notes
+   * - macOS
+     - ``PyGRA-macos.dmg``
+     - Mount and drag to Applications. On first launch, go to
+       **System Settings → Privacy & Security → Open Anyway**
+       if macOS blocks the app.
+   * - Linux
+     - ``PyGRA-linux.tar.gz``
+     - Extract and run ``./PyGRA/PyGRA`` directly.
+   * - Windows
+     - ``PyGRA.exe``
+     - Run directly. Windows may show a SmartScreen warning —
+       click **More info → Run anyway**.
+
+Developer installation
+----------------------
+
+If you want to run PyGRA from source or contribute to the project,
+install it in a Python environment.
+
 Requirements
-------------
+~~~~~~~~~~~~
 
 - Python >= 3.11
 - numpy >= 1.24
@@ -11,7 +44,7 @@ Requirements
 - PyQt5 >= 5.15
 
 With conda (recommended)
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -26,7 +59,7 @@ Or install into an existing environment (e.g. your oxDNA environment):
    pip install -e .
 
 With pip
---------
+~~~~~~~~
 
 .. code-block:: bash
 

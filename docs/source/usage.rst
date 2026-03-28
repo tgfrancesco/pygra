@@ -72,20 +72,22 @@ Menu bar
 Toolbar
 ~~~~~~~
 
-The toolbar provides three navigation buttons:
-
 - **🔍 Zoom** — click and drag to zoom into a region
 - **✋ Pan** — click and drag to pan the view
 - **⌂ Reset** — restore the original view
 - **↺ Legend** — reset the legend to its automatic position
+- **Coordinate display** — x and y values under the cursor, shown in real
+  time on the right side of the toolbar when hovering over the plot
 
 Color picker
 ~~~~~~~~~~~~
 
 The color picker uses the Qt dialog (same appearance on all platforms).
 The **Basic colors** grid can be replaced with any scientific palette via
-**View → Color palette**. The chosen palette is saved in preferences and
-restored at next launch.
+**View → Color palette**. A checkmark indicates the active palette, and
+the name of the active palette is shown in the color picker itself
+("Basic colors palette (active: ...)"). The chosen palette is saved in
+preferences and restored at next launch.
 
 On **Linux**, the **Pick Screen Color** button captures any color visible on
 screen. On **macOS** and **Windows** this button is hidden, as platform
@@ -101,6 +103,9 @@ After plotting, click and drag the legend to reposition it anywhere on the
 figure. The position is preserved across subsequent plots. Click **↺ Legend**
 in the toolbar to reset to automatic positioning.
 
+Legend style options are available in **View → Style settings**: frame on/off,
+background transparency, number of columns, symbol size, and default position.
+
 User preferences
 ~~~~~~~~~~~~~~~~
 
@@ -108,8 +113,9 @@ PyGRA saves preferences automatically to ``~/.config/pygra/preferences.json``
 when you close the application. These include:
 
 - Window geometry and panel proportions
-- Style settings (fonts, grid, theme, DPI)
+- Style settings (fonts, grid, theme, DPI, figure size)
 - Last used color palette
+- Custom colors
 
 Use **View → Save preferences** to save at any time, or
 **View → Reset preferences** to restore defaults.
