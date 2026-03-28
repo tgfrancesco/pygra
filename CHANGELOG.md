@@ -1,8 +1,24 @@
 # Changelog
 
+## [0.6.0] - 2026-03-28
+
+### Added
+- Coordinate display: mouse coordinates (x, y) shown in real time in the toolbar when hovering over the plot
+- Checkmark in View → Color palette menu to indicate the active palette
+- Active palette name shown in the color picker pre-dialog ("Basic colors palette (active: ...)")
+- GitHub Actions workflow: automatic builds for macOS (.dmg), Linux (.tar.gz), and Windows (.exe) on every release
+
+### Fixed
+- CLI parser: per-file `--x`/`--y` no longer bleed into subsequent files without explicit column settings
+- Version aligned to `0.6.0` across `pyproject.toml`, `__init__.py`, and `state.py`
+- Package data path corrected to include `logo/` directory
+
 ## [0.5.1] - 2026-03-27
 
-- 83 pytest tests covering `DataSet` loading, all `apply_transform` operations, all fit functions, and CLI parser behavior (`tests/test_dataset.py`, `tests/test_fitting.py`, `tests/test_cli.py`)
+### Added
+- 83 pytest tests covering `DataSet` loading, all `apply_transform` operations,
+  all fit functions, and CLI parser behavior
+  (`tests/test_dataset.py`, `tests/test_fitting.py`, `tests/test_cli.py`)
 
 ### Fixed
 - Dataset loading now shows a warning dialog listing skipped row count, line
@@ -12,9 +28,6 @@
 - Replaced bare `except:` and `except Exception: pass` blocks across `main.py`,
   `dialogs.py`, `mainwindow.py`, `palettes.py`, and `preferences.py` with
   specific exception types and stderr warnings so failures are visible
-- CLI parser: per-file `--x`/`--y` no longer bleed into subsequent files
-- Version aligned to `0.5.1` across `pyproject.toml`, `__init__.py`, and `state.py`
-- Package data path corrected to include `logo/` directory
 
 ## [0.5.0] - 2026-03-27
 
@@ -40,8 +53,7 @@
 ### Fixed
 - Colors from Appearance dialog now correctly applied to the plot
 - Histogram mode no longer crashes with `KeyError: 'label'`
-- CLI: `--x`/`--y` after all `--file` arguments now correctly applies to all files
-- Positional file arguments supported: `pygra *.dat` works as expected
+- CLI: positional file arguments supported (`pygra *.dat` works as expected)
 
 ### Changed
 - Left panel width is now flexible (min 280px, max 500px) instead of fixed
