@@ -13,6 +13,7 @@
      <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey" alt="Platform">
      <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
      <img src="https://img.shields.io/badge/python-3.11+-yellow" alt="Python Version">
+     <a href="https://pygra.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/pygra/badge/?version=latest" alt="Documentation"></a>
    </p>
 
 PyGRA
@@ -29,6 +30,7 @@ flexible plotting without writing code every time.
    :maxdepth: 2
    :caption: User guide
 
+   download
    installation
    usage
    cli
