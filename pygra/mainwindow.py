@@ -332,6 +332,15 @@ class MainWindow(QMainWindow):
             b.setFixedHeight(28)
             tb_row.addWidget(b)
         tb_row.addStretch()
+        self._coord_label = QLabel("—")
+        self._coord_label.setFixedHeight(28)
+        self._coord_label.setMinimumWidth(200)
+        self._coord_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        from PyQt5.QtGui import QFont
+        _mono = QFont("Monospace")
+        _mono.setStyleHint(QFont.Monospace)
+        self._coord_label.setFont(_mono)
+        tb_row.addWidget(self._coord_label)
         rv.addLayout(tb_row)
         rv.addWidget(self.canvas)
 
@@ -481,6 +490,12 @@ class MainWindow(QMainWindow):
             self._dragging_legend = True
 
     def _on_mouse_move(self, event):
+        # coordinate display
+        if event.inaxes is not None and not (self._zoom_btn.isChecked() or self._pan_btn.isChecked()):
+            self._coord_label.setText(f"x = {event.xdata:.4g}   y = {event.ydata:.4g}")
+        else:
+            self._coord_label.setText("—")
+
         if not self._dragging_legend:
             return
         ax = self.fig.axes[0] if self.fig.axes else None
