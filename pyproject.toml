@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pygra"
-version = "0.4.0"
+version = "0.5.1"
 description = "PyGRA — interactive scientific data plotter inspired by xmgrace"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,5 +24,5 @@ pygra = "pygra.main:main"
 where = ["."]
 include = ["pygra*"]
 
-[tool.setuptools.package-data]
-pygra = ["../pygra_logo.png"]
+[tool.setuptools.data-files]
+"logo" = ["logo/pygra_logo.png", "logo/pygra_dock_icon.png"]

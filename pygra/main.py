@@ -71,8 +71,24 @@ def _parse_interleaved(argv: list) -> dict:
 
     files = []
     load = None
+    global_x = None
+    global_y = None
 
-    # First pass: collect files (from --file or positional) and any immediately following --x/--y
+    def _has_subsequent_file(start: int) -> bool:
+        """Return True if argv[start:] contains another file argument."""
+        j = start
+        while j < len(argv):
+            nxt = argv[j]
+            if nxt in ("--file", "-f"):
+                return True
+            if nxt in ("--load", "-l", "--x", "--y"):
+                j += 2
+                continue
+            if not nxt.startswith("-"):
+                return True
+            j += 1
+        return False
+
     i = 0
     while i < len(argv):
         tok = argv[i]
@@ -86,29 +102,34 @@ def _parse_interleaved(argv: list) -> dict:
         elif tok == "--x" and files:
             i += 1
             try:
-                files[-1]["xcol"] = int(argv[i])
+                value = int(argv[i])
             except (ValueError, IndexError):
-                pass
+                value = None
+            if value is not None:
+                if _has_subsequent_file(i + 1):
+                    files[-1]["xcol"] = value
+                else:
+                    global_x = value
         elif tok == "--y" and files:
             i += 1
             try:
-                files[-1]["ycol"] = int(argv[i])
+                value = int(argv[i])
             except (ValueError, IndexError):
-                pass
+                value = None
+            if value is not None:
+                if _has_subsequent_file(i + 1):
+                    files[-1]["ycol"] = value
+                else:
+                    global_y = value
         elif not tok.startswith("-"):
-            # positional argument: treat as a file path
             files.append({"path": tok, "xcol": None, "ycol": None})
         i += 1
 
-    # Second pass: fill in defaults and propagate shared values
-    explicit_x = next((f["xcol"] for f in files if f["xcol"] is not None), None)
-    explicit_y = next((f["ycol"] for f in files if f["ycol"] is not None), None)
-
     for f in files:
         if f["xcol"] is None:
-            f["xcol"] = explicit_x if explicit_x is not None else 0
+            f["xcol"] = global_x if global_x is not None else 0
         if f["ycol"] is None:
-            f["ycol"] = explicit_y if explicit_y is not None else 1
+            f["ycol"] = global_y if global_y is not None else 1
 
     return {"files": files, "load": load}
 
