@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.1] - 2026-03-28
+
+### Fixed
+- macOS DMG now includes Applications folder shortcut (drag-to-install)
+- Documented macOS Gatekeeper and Windows SmartScreen security warnings
+
+### Changed
+- Documentation: Download moved to a dedicated page separate from Installation
+- Documentation: added security notes for macOS and Windows first launch
+
 ## [0.6.0] - 2026-03-28
 
 ### Added

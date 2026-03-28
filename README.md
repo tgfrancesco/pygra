@@ -51,6 +51,9 @@ No Python installation required.
 > On first launch go to **System Settings → Privacy & Security → Open Anyway**
 > if macOS blocks the app. This is a one-time step.
 
+> **Windows:** Windows may show a SmartScreen warning.
+> Click **"More info" → "Run anyway"** to proceed.
+
 ## Installation
 
 ### With conda (recommended)
