@@ -6,7 +6,8 @@ import json
 import numpy as np
 
 
-def save_state(path: str, dataset_widgets: list, axis_settings: dict, style_settings: dict):
+def save_state(path: str, dataset_widgets: list, axis_settings: dict,
+               style_settings: dict, annotations: list | None = None):
     """
     Serialise the full application state to a JSON file.
 
@@ -22,6 +23,9 @@ def save_state(path: str, dataset_widgets: list, axis_settings: dict, style_sett
         as returned by ``MainWindow._get_axis_settings()``.
     style_settings : dict
         Global plot style settings (font sizes, grid, theme, DPI, legend).
+    annotations : list of dict, optional
+        Text annotations with keys ``"text"``, ``"x"``, ``"y"``,
+        ``"fontsize"``, ``"color"``, ``"bold"``.
 
     Raises
     ------
@@ -42,6 +46,7 @@ def save_state(path: str, dataset_widgets: list, axis_settings: dict, style_sett
         "series":         series,
         "axis_settings":  axis_settings,
         "style_settings": style_settings,
+        "annotations":    annotations or [],
     }
     with open(path, "w") as f:
         json.dump(state, f, indent=2)

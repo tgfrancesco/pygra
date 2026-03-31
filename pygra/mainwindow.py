@@ -12,28 +12,29 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QGroupBox, QGridLayout, QSplitter,
     QCheckBox, QTabWidget, QFileDialog, QMessageBox, QSizePolicy,
     QDialog, QShortcut, QAction, QPushButton, QFrame,
-    QScrollArea,
+    QScrollArea, QMenu,
 )
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QKeySequence, QIcon
+from PyQt5.QtCore import Qt, QTimer, QUrl
+from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 
 import matplotlib
 matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 
 from .constants import COLORS, DEFAULT_STYLE_SETTINGS
 from .dataset import DataSet, apply_transform
 from .dialogs import (
     StyleDialog, TransformDialog, StatsDialog, FitDialog,
-    AppearanceDialog, DataEditorDialog,
+    AppearanceDialog, DataEditorDialog, Hist2DAppearanceDialog,
+    TextAnnotationDialog,
     apply_basic_palette, restore_basic_palette,
 )
 from .fitting import FIT_FUNCTIONS, fit_custom
 from .widgets import DatasetWidget
 from .state import save_state, load_state
 from .preferences import load_prefs, save_prefs, PREFS_PATH
+from .plot_engine import render_plot
 
 
 class FitLayer:
@@ -173,6 +174,13 @@ class MainWindow(QMainWindow):
                                for k, v in DEFAULT_STYLE_SETTINGS.items()}
         self._legend_pos = None
         self._dragging_legend = False
+        self._pct_text_artists: list = []
+        self._pct_label_positions: list = []   # (x, y) per artist, or None for default
+        self._pct_series_key: tuple = ()
+        self._dragging_pct_idx: int = -1
+        self._annotations: list = []           # list of annotation dicts
+        self._annot_artists: list = []         # matplotlib Text objects, rebuilt each _plot()
+        self._dragging_annot_idx: int = -1
         self._palette_actions: dict = {}
         self._build_ui()
         self._build_menu()
@@ -229,10 +237,66 @@ class MainWindow(QMainWindow):
         self._act(view_menu, "Save preferences",  None,     self._save_preferences)
         self._act(view_menu, "Reset preferences", None,     self._reset_preferences)
 
+        help_menu = mb.addMenu("Help")
+        self._act(help_menu, "Documentation",  None, self._open_docs)
+        self._act(help_menu, "About PyGRA",    None, self._about)
+
         # plot shortcut (also triggered by the Plot button)
         from PyQt5.QtWidgets import QShortcut
         from PyQt5.QtGui import QKeySequence
         QShortcut(QKeySequence("Ctrl+Return"), self).activated.connect(self._plot)
+
+    def _open_docs(self):
+        QDesktopServices.openUrl(QUrl("https://pygra.readthedocs.io"))
+
+    def _about(self):
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel
+        from PyQt5.QtGui import QPixmap
+        from PyQt5.QtCore import Qt
+        from pygra import __version__
+        import os
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("About PyGRA")
+        lay = QVBoxLayout(dlg)
+        lay.setSpacing(6)
+
+        logo_path = os.path.join(os.path.dirname(__file__),
+                                 "..", "logo", "pygra_logo.png")
+        logo_path = os.path.normpath(logo_path)
+        if os.path.exists(logo_path):
+            pix = QPixmap(logo_path).scaledToWidth(
+                120, Qt.SmoothTransformation)
+            logo_lbl = QLabel()
+            logo_lbl.setPixmap(pix)
+            logo_lbl.setAlignment(Qt.AlignCenter)
+            lay.addWidget(logo_lbl)
+
+        for text, align in [
+            ("<b>PyGRA</b>",                        Qt.AlignCenter),
+            (f"Version {__version__}",              Qt.AlignCenter),
+            ("Interactive scientific data plotter", Qt.AlignCenter),
+            ("Author: Francesco Tosti Guerra",      Qt.AlignCenter),
+            ("License: MIT",                        Qt.AlignCenter),
+        ]:
+            lbl = QLabel(text)
+            lbl.setAlignment(align)
+            lay.addWidget(lbl)
+
+        for url, label in [
+            ("https://github.com/tgfrancesco/PyGRA",  "GitHub"),
+            ("https://pygra.readthedocs.io",          "Documentation"),
+        ]:
+            lnk = QLabel(f'<a href="{url}">{label}</a>')
+            lnk.setAlignment(Qt.AlignCenter)
+            lnk.setOpenExternalLinks(True)
+            lay.addWidget(lnk)
+
+        from PyQt5.QtWidgets import QDialogButtonBox
+        btns = QDialogButtonBox(QDialogButtonBox.Close)
+        btns.rejected.connect(dlg.reject)
+        lay.addWidget(btns)
+        dlg.exec_()
 
     def _act(self, menu, label, shortcut, slot):
         a = QAction(label, self)
@@ -337,7 +401,13 @@ class MainWindow(QMainWindow):
         self._coord_label.setMinimumWidth(200)
         self._coord_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         from PyQt5.QtGui import QFont
-        _mono = QFont("Monospace")
+        if sys.platform == "darwin":
+            _mono_family = "Menlo"
+        elif sys.platform == "win32":
+            _mono_family = "Courier New"
+        else:
+            _mono_family = "DejaVu Sans Mono"
+        _mono = QFont(_mono_family)
         _mono.setStyleHint(QFont.Monospace)
         self._coord_label.setFont(_mono)
         tb_row.addWidget(self._coord_label)
@@ -349,6 +419,12 @@ class MainWindow(QMainWindow):
         self._reset_leg_btn.setToolTip("Reset legend to automatic position")
         self._reset_leg_btn.clicked.connect(self._reset_legend_pos)
         tb_row.insertWidget(3, self._reset_leg_btn)
+
+        self._annot_btn = QPushButton("✎ Text")
+        self._annot_btn.setFixedHeight(28)
+        self._annot_btn.setToolTip("Add text annotation")
+        self._annot_btn.clicked.connect(self._add_annotation)
+        tb_row.insertWidget(4, self._annot_btn)
 
         self._zoom_btn.toggled.connect(self._toggle_zoom)
         self._pan_btn.toggled.connect(self._toggle_pan)
@@ -485,6 +561,45 @@ class MainWindow(QMainWindow):
         ax = self.fig.axes[0] if self.fig.axes else None
         if ax is None:
             return
+
+        # check annotation artists
+        self._dragging_annot_idx = -1
+        for i, txt in enumerate(self._annot_artists):
+            try:
+                hit, _ = txt.contains(event)
+            except Exception:
+                hit = False
+            if not hit:
+                continue
+            if event.button == 3:                          # right-click → delete
+                menu = QMenu(self)
+                del_act = menu.addAction("Delete annotation")
+                from PyQt5.QtGui import QCursor
+                chosen = menu.exec_(QCursor.pos())
+                if chosen == del_act:
+                    self._annotations.pop(i)
+                    self._plot()
+                return
+            if event.dblclick:                             # double-click → edit
+                dlg = TextAnnotationDialog(self._annotations[i], self)
+                if dlg.exec_():
+                    cfg = dlg.get_config()
+                    self._annotations[i].update(cfg)
+                    self._plot()
+                return
+            self._dragging_annot_idx = i                   # single left-click → drag
+            return
+
+        # check percentage labels
+        self._dragging_pct_idx = -1
+        for i, txt in enumerate(self._pct_text_artists):
+            try:
+                if txt.contains(event)[0]:
+                    self._dragging_pct_idx = i
+                    return
+            except Exception:
+                pass
+        # check legend
         leg = ax.get_legend()
         if leg and leg.contains(event)[0]:
             self._dragging_legend = True
@@ -495,6 +610,37 @@ class MainWindow(QMainWindow):
             self._coord_label.setText(f"x = {event.xdata:.4g}   y = {event.ydata:.4g}")
         else:
             self._coord_label.setText("—")
+
+        # drag annotation
+        if self._dragging_annot_idx >= 0:
+            ax = self.fig.axes[0] if self.fig.axes else None
+            if ax is not None:
+                try:
+                    fx, fy = ax.transAxes.inverted().transform((event.x, event.y))
+                    txt = self._annot_artists[self._dragging_annot_idx]
+                    txt.set_position((fx, fy))
+                    self._annotations[self._dragging_annot_idx]["x"] = fx
+                    self._annotations[self._dragging_annot_idx]["y"] = fy
+                    self.canvas.draw_idle()
+                except (ValueError, RuntimeError, IndexError):
+                    pass
+            return
+
+        # drag percentage label
+        if self._dragging_pct_idx >= 0:
+            ax = self.fig.axes[0] if self.fig.axes else None
+            if ax is not None and event.xdata is not None:
+                try:
+                    x_d, y_d = ax.transData.inverted().transform((event.x, event.y))
+                    txt = self._pct_text_artists[self._dragging_pct_idx]
+                    txt.set_position((x_d, y_d))
+                    while len(self._pct_label_positions) <= self._dragging_pct_idx:
+                        self._pct_label_positions.append(None)
+                    self._pct_label_positions[self._dragging_pct_idx] = (x_d, y_d)
+                    self.canvas.draw_idle()
+                except (ValueError, RuntimeError, IndexError):
+                    pass
+            return
 
         if not self._dragging_legend:
             return
@@ -516,6 +662,8 @@ class MainWindow(QMainWindow):
 
     def _on_mouse_release(self, event):
         self._dragging_legend = False
+        self._dragging_pct_idx = -1
+        self._dragging_annot_idx = -1
 
     # ------------------------------------------------------------------
     # File actions
@@ -875,7 +1023,8 @@ class MainWindow(QMainWindow):
             return
         try:
             save_state(path, self.dataset_widgets,
-                       self._get_axis_settings(), self.style_settings)
+                       self._get_axis_settings(), self.style_settings,
+                       self._annotations)
             QMessageBox.information(self, "Saved", f"Session saved to:\n{path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
@@ -914,15 +1063,34 @@ class MainWindow(QMainWindow):
             dw.dxcol.setValue(cfg.get("dxcol", -1))
             dw.dycol.setValue(cfg.get("dycol", -1))
             dw._series_style["label"] = cfg.get("label", ds.name)
-            dw.hist_mode.setChecked(cfg.get("hist_mode", False))
+            if cfg.get("hist2d_mode", False):
+                dw.set_mode("hist2d")
+            elif cfg.get("hist_mode", False):
+                dw.set_mode("histogram")
+            else:
+                dw.set_mode("series")
             dw.visible.setChecked(cfg.get("visible", True))
             for k in dw._series_style:
                 if k in cfg: dw._series_style[k] = cfg[k]
             for k in dw._hist_style:
                 if k in cfg: dw._hist_style[k] = cfg[k]
+            for k in dw._hist2d_style:
+                if k in cfg: dw._hist2d_style[k] = cfg[k]
 
         self._apply_axis_settings(state.get("axis_settings", {}))
         self.style_settings = state.get("style_settings", dict(DEFAULT_STYLE_SETTINGS))
+        self._annotations = state.get("annotations", [])
+
+    def _add_annotation(self):
+        """Open TextAnnotationDialog and add a new annotation at axes centre."""
+        dlg = TextAnnotationDialog(parent=self)
+        if not dlg.exec_():
+            return
+        cfg = dlg.get_config()
+        cfg["x"] = 0.5
+        cfg["y"] = 0.5
+        self._annotations.append(cfg)
+        self._plot()
 
     # ------------------------------------------------------------------
     # Plot
@@ -940,107 +1108,35 @@ class MainWindow(QMainWindow):
         self.fig.clear()
         ax = self.fig.add_subplot(111)
 
-        for dw in self.dataset_widgets:
-            cfg = dw.get_config()
-            if not cfg["visible"]:
-                continue
-            ds = dw.dataset
+        # reset pct-label positions when the series identity changes
+        new_pct_key = tuple(
+            (dw.dataset.name, dw.get_config()["hcol"],
+             dw.get_config()["hist_bins"], dw.get_config()["hist_nbins"],
+             dw.get_config().get("hist_horizontal", False))
+            for dw in self.dataset_widgets
+            if dw.get_config()["visible"]
+            and dw.get_config()["hist_mode"]
+            and dw.get_config().get("hist_show_pct", False)
+        )
+        if new_pct_key != self._pct_series_key:
+            self._pct_label_positions = []
+            self._pct_series_key = new_pct_key
 
-            # ---- histogram ----
-            if cfg["hist_mode"]:
-                data = ds.col(cfg["hcol"])
-                if data is None:
-                    continue
-                bins = (cfg["hist_nbins"] if cfg["hist_bins"] == "manual"
-                        else cfg["hist_bins"])
-                norm = cfg["hist_norm"]
-                if norm == "probability":
-                    counts, edges = np.histogram(data, bins=bins)
-                    counts = counts / counts.sum()
-                    ax.bar(edges[:-1], counts, width=np.diff(edges), align="edge",
-                           label=cfg["label"], facecolor=cfg["color"],
-                           edgecolor=cfg["face_color"], alpha=0.75)
-                else:
-                    ax.hist(data, bins=bins, density=(norm == "density"),
-                            label=cfg["label"], facecolor=cfg["color"],
-                            edgecolor=cfg["face_color"], alpha=0.75)
-                continue
+        result = render_plot(
+            fig=self.fig,
+            ax=ax,
+            dataset_widgets=self.dataset_widgets,
+            fit_layers=self.fit_layers,
+            annotations=self._annotations,
+            style_settings=self.style_settings,
+            axis_settings=self._get_axis_settings(),
+            legend_pos=self._legend_pos,
+            pct_label_positions=self._pct_label_positions,
+        )
 
-            # ---- xy plot ----
-            x = ds.col(cfg["xcol"])
-            y = ds.col(cfg["ycol"])
-            if x is None or y is None:
-                continue
-            dx = ds.col(cfg["dxcol"]) if cfg["dxcol"] >= 0 else None
-            dy = ds.col(cfg["dycol"]) if cfg["dycol"] >= 0 else None
-
-            ls = cfg["linestyle"] if cfg["linestyle"] != "none" else "None"
-            mk = cfg["marker"]    if cfg["marker"]    != "none" else "None"
-
-            plot_kw = dict(
-                linestyle=ls, linewidth=cfg["linewidth"],
-                marker=mk, markersize=cfg["markersize"],
-                color=cfg["color"],
-                markerfacecolor=cfg["face_color"],
-                markeredgecolor=cfg["color"],
-                label=cfg["label"],
-            )
-            if dx is not None or dy is not None:
-                ax.errorbar(x, y, xerr=dx, yerr=dy, capsize=3, **plot_kw)
-            else:
-                ax.plot(x, y, **plot_kw)
-
-        # ---- fit layers ----
-        for layer in self.fit_layers:
-            if layer.visible:
-                ax.plot(layer.x, layer.y,
-                        linestyle=layer.linestyle,
-                        linewidth=layer.linewidth,
-                        color=layer.color,
-                        label=layer.label)
-
-        # axis config
-        if self.logx.isChecked(): ax.set_xscale("log")
-        if self.logy.isChecked(): ax.set_yscale("log")
-        if self.xl.text():         ax.set_xlabel(self.xl.text(),        fontsize=ss["label_fs"])
-        if self.yl.text():         ax.set_ylabel(self.yl.text(),        fontsize=ss["label_fs"])
-        if self.title_edit.text(): ax.set_title(self.title_edit.text(), fontsize=ss["title_fs"])
-        ax.tick_params(labelsize=ss["tick_fs"])
-
-        def _parse(w):
-            try:   return float(w.text())
-            except ValueError: return None
-
-        xmin, xmax = _parse(self.xmin), _parse(self.xmax)
-        ymin, ymax = _parse(self.ymin), _parse(self.ymax)
-        if xmin is not None or xmax is not None: ax.set_xlim(left=xmin, right=xmax)
-        if ymin is not None or ymax is not None: ax.set_ylim(bottom=ymin, top=ymax)
-
-        if ss["major_x"] > 0: ax.xaxis.set_major_locator(MultipleLocator(ss["major_x"]))
-        if ss["major_y"] > 0: ax.yaxis.set_major_locator(MultipleLocator(ss["major_y"]))
-        if ss["minor_x"] > 0: ax.xaxis.set_minor_locator(AutoMinorLocator(ss["minor_x"]))
-        if ss["minor_y"] > 0: ax.yaxis.set_minor_locator(AutoMinorLocator(ss["minor_y"]))
-        if ss["grid_major"]: ax.grid(True, which="major", alpha=0.35)
-        if ss["grid_minor"]: ax.grid(True, which="minor", alpha=0.15, linestyle=":")
-
-        has_legend = (any(dw.get_config()["label"] for dw in self.dataset_widgets)
-                      or self.fit_layers)
-        if has_legend:
-            leg_kw = dict(
-                fontsize=ss["legend_fs"],
-                frameon=ss.get("legend_frameon", True),
-                ncols=ss.get("legend_ncols", 1),
-                handlelength=ss.get("legend_handlelength", 2.0),
-            )
-            alpha = ss.get("legend_alpha", 1.0)
-            leg = ax.legend(loc=ss.get("legend_loc", "best"), **leg_kw)
-            if leg:
-                leg.get_frame().set_alpha(alpha)
-                # restore dragged position after legend is created
-                if self._legend_pos is not None:
-                    leg.set_bbox_to_anchor(self._legend_pos, transform=ax.transAxes)
-                    leg._loc = 6  # "center left" as anchor reference
-                self._current_legend = leg
+        self._current_legend  = result["legend"]
+        self._pct_text_artists = result["pct_texts"]
+        self._annot_artists    = result["annot_artists"]
 
         self.canvas.draw()
 

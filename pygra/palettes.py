@@ -1,5 +1,18 @@
 """
 palettes.py — scientific color palettes for PyGRA
+
+Exports
+-------
+PALETTES : dict[str, list[str]]
+    Mapping from palette name to a list of hex color strings.
+    Categories include colorblind-friendly palettes (Okabe-Ito, Wong,
+    Paul Tol), matplotlib categorical palettes (tab10, tab20, Set1–3,
+    Paired, Dark2, Pastel1), perceptually-uniform sequential/diverging
+    colormaps sampled via matplotlib, and hand-picked CSS color groups.
+
+PALETTE_GROUPS : dict[str, list[str]]
+    Mapping from group label to an ordered list of palette names within
+    that group.  Used to populate the two-level browser in PaletteDialog.
 """
 
 import sys

@@ -186,6 +186,11 @@ def fit_custom(data: np.ndarray, formula: str, param_names: list):
     return x_fine, y_fine, label, params_dict
 
 
+# Registry mapping fit-method names (as they appear in FitDialog) to the
+# corresponding fit function.  Each function accepts a 1-D NumPy array and
+# returns ``(x, y, label, params_dict)``.  Only distribution fits are
+# included here; spline, polynomial, linear, and custom fits are handled
+# separately in mainwindow because they operate on xy data, not histograms.
 FIT_FUNCTIONS = {
     "Gaussian":          fit_gaussian,
     "Exponential":       fit_exponential,
