@@ -16,7 +16,8 @@ Left panel
 
 - **Load files** — opens one or more data files
 - **Series tabs** — one tab per loaded series; each tab has column selectors,
-  an Appearance button, a visibility checkbox, and a close button (✕)
+  mode selector (Series / Histogram / Histogram 2D), Appearance button,
+  visibility checkbox, and a close button (✕)
 - **Fit & interpolation layers** — lists active fit curves with visibility
   toggle, remove button, and double-click to edit style
 - **Axis settings** — labels, title, log scale, limits
@@ -68,6 +69,12 @@ Menu bar
    * - View
      - Reset preferences
      - —
+   * - Help
+     - Documentation
+     - —
+   * - Help
+     - About PyGRA
+     - —
 
 Toolbar
 ~~~~~~~
@@ -76,8 +83,52 @@ Toolbar
 - **✋ Pan** — click and drag to pan the view
 - **⌂ Reset** — restore the original view
 - **↺ Legend** — reset the legend to its automatic position
+- **✎ Text** — add a draggable text annotation to the plot
 - **Coordinate display** — x and y values under the cursor, shown in real
   time on the right side of the toolbar when hovering over the plot
+
+Plot modes
+~~~~~~~~~~
+
+Each series can be displayed in one of three modes, selectable via radio
+buttons in the series tab:
+
+**Series** — standard x/y line or scatter plot with optional error bars.
+
+**Histogram** — 1D histogram of a selected column. Options in Appearance:
+
+- Bin count (manual or auto) and normalisation (count / density / probability)
+- Horizontal orientation
+- Color by value — bars colored using a matplotlib colormap based on height
+- Percentage labels with configurable font size and bold option
+- Show/hide percentages
+
+**Histogram 2D** — 2D density map of two columns. Options in Appearance:
+
+- Bins x / bins y (manual or auto)
+- Colormap (viridis, plasma, coolwarm, etc.)
+- Normalisation (count / density)
+- Log scale for the color axis
+- Colorbar on/off
+
+Text annotations
+~~~~~~~~~~~~~~~~
+
+Click **✎ Text** in the toolbar to add a text annotation to the plot.
+A dialog allows you to set:
+
+- Text content (Shift+Enter for newline)
+- Font size and bold
+- Color
+- Rotation angle (degrees)
+
+Once placed, annotations can be:
+
+- **Dragged** — click and drag to reposition
+- **Edited** — double-click to reopen the dialog
+- **Deleted** — right-click → Delete
+
+Annotation positions are preserved across replots and saved in sessions.
 
 Color picker
 ~~~~~~~~~~~~
@@ -104,7 +155,20 @@ figure. The position is preserved across subsequent plots. Click **↺ Legend**
 in the toolbar to reset to automatic positioning.
 
 Legend style options are available in **View → Style settings**: frame on/off,
-background transparency, number of columns, symbol size, and default position.
+background transparency, number of columns, symbol size, default position,
+and show/hide toggle.
+
+Style settings
+~~~~~~~~~~~~~~
+
+**View → Style settings** (Ctrl+,) controls global appearance:
+
+- Font sizes for title, axis labels, ticks, and legend
+- Bold text options for each element independently
+- Major/minor tick spacing and grid
+- Plot theme (default, dark, seaborn, ggplot, bmh, grayscale)
+- Figure size and DPI for saving
+- Legend options (position, frame, transparency, columns, symbol size)
 
 User preferences
 ~~~~~~~~~~~~~~~~
