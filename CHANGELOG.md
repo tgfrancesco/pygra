@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.7.0] - 2026-03-31
+
+### Added
+- Histogram 2D: new series mode with heatmap display, configurable bins (x/y 
+  separately with auto option), colormap, log scale, colorbar, and 
+  count/density normalisation
+- Horizontal histogram: "Horizontal" checkbox in Histogram Appearance
+- Color by value in 1D histogram: bars colored by height using a 
+  configurable matplotlib colormap
+- Percentage font size control in Histogram Appearance
+- Draggable text annotations: add via ✎ Text toolbar button, drag to 
+  reposition, double-click to edit (text, font size, color, bold, rotation), 
+  right-click to delete, Shift+Enter for multiline text
+- Help menu: "Documentation" opens pygra.readthedocs.io, "About PyGRA" 
+  shows version, author, license and links
+- Bold text options in Style settings for title, axis labels, ticks, 
+  legend, and percentage labels
+- Legend show/hide option in Style settings
+
+### Changed
+- dialogs.py split into dialogs_style.py, dialogs_analysis.py, dialogs_misc.py
+- _plot() logic extracted into plot_engine.py
+- Docstrings updated across dataset.py, fitting.py, dialogs, preferences.py, 
+  state.py, palettes.py, plot_engine.py
+- Updated project description to reflect full feature set
+
 ## [0.6.1] - 2026-03-28
 
 ### Fixed

@@ -9,7 +9,7 @@
   <a href="https://pygra.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/pygra/badge/?version=latest" alt="Documentation"></a>
 </p>
 
-**PyGRA** is an interactive scientific data plotter built with Python, PyQt5, and Matplotlib, inspired by *xmgrace*.
+**PyGRA** is a cross-platform interactive scientific data plotter built with Python, PyQt5, and Matplotlib. It provides a graphical interface for loading, visualising, transforming, and fitting multi-column data files — with histogram analysis, 2D density plots, draggable annotations, and publication-ready figure export.
 
 📖 **[Documentation](https://pygra.readthedocs.io/en/latest/)**
 
