@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
   <img src="https://img.shields.io/badge/python-3.11+-yellow" alt="Python Version">
   <a href="https://pygra.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/pygra/badge/?version=latest" alt="Documentation"></a>
+  <a href="https://github.com/tgfrancesco/PyGRA/actions/workflows/ci.yml"><img src="https://github.com/tgfrancesco/PyGRA/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 **PyGRA** is a cross-platform interactive scientific data plotter built with Python, PyQt5, and Matplotlib. It provides a graphical interface for loading, visualising, transforming, and fitting multi-column data files — with histogram analysis, 2D density plots, draggable annotations, and publication-ready figure export.
