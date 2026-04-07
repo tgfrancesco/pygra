@@ -2,6 +2,8 @@
 dataset.py — data loading and transform operations
 """
 
+from pathlib import Path
+
 import numpy as np
 from scipy.signal import savgol_filter
 
@@ -43,7 +45,7 @@ class DataSet:
             Path to the data file to load.
         """
         self.path = path
-        self.name = path.split("/")[-1]
+        self.name = Path(path).name
         self.raw: list = []
         self._load()
 
