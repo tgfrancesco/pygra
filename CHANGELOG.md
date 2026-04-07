@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] - 2026-04-07
+
+### Fixed
+- Windows: series tab and plot label now show filename only instead of full path
+
 ## [0.7.0] - 2026-03-31
 
 ### Added
