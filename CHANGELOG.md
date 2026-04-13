@@ -2,6 +2,11 @@
 
 ## [0.7.1] - 2026-04-07
 
+### Added
+- CI/CD workflow: automatic testing on macOS, Linux, and Windows via 
+  GitHub Actions on every push and pull request (pytest + ruff)
+- CI badge added to README
+
 ### Fixed
 - Windows: series tab and plot label now show filename only instead of full path
 
