@@ -267,7 +267,10 @@ class TestFitFunctionsRegistry:
 
     def test_expected_keys(self):
         assert set(FIT_FUNCTIONS.keys()) == {
-            "Gaussian", "Exponential", "Maxwell-Boltzmann", "Poisson"
+            "Gaussian (distribution)",
+            "Exponential (distribution)",
+            "Maxwell-Boltzmann (distribution)",
+            "Poisson (distribution)",
         }
 
     def test_all_values_callable(self):
@@ -275,13 +278,13 @@ class TestFitFunctionsRegistry:
             assert callable(fn), f"FIT_FUNCTIONS['{name}'] is not callable"
 
     def test_gaussian_entry_is_fit_gaussian(self):
-        assert FIT_FUNCTIONS["Gaussian"] is fit_gaussian
+        assert FIT_FUNCTIONS["Gaussian (distribution)"] is fit_gaussian
 
     def test_exponential_entry_is_fit_exponential(self):
-        assert FIT_FUNCTIONS["Exponential"] is fit_exponential
+        assert FIT_FUNCTIONS["Exponential (distribution)"] is fit_exponential
 
     def test_maxwell_entry_is_fit_maxwell_boltzmann(self):
-        assert FIT_FUNCTIONS["Maxwell-Boltzmann"] is fit_maxwell_boltzmann
+        assert FIT_FUNCTIONS["Maxwell-Boltzmann (distribution)"] is fit_maxwell_boltzmann
 
     def test_poisson_entry_is_fit_poisson(self):
-        assert FIT_FUNCTIONS["Poisson"] is fit_poisson
+        assert FIT_FUNCTIONS["Poisson (distribution)"] is fit_poisson

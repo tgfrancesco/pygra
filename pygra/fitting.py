@@ -121,6 +121,81 @@ def fit_poisson(data: np.ndarray):
     return x_int.astype(float), y, label, {"μ": mu}
 
 
+def fit_gaussian_curve(x: np.ndarray, y: np.ndarray):
+    """
+    Fit A * exp(-(x - mu)**2 / (2 * sigma**2)) to xy data.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        1-D array of x values.
+    y : numpy.ndarray
+        1-D array of y values.
+
+    Returns
+    -------
+    x_fine : numpy.ndarray
+        300 evenly-spaced points spanning ``[x.min(), x.max()]``.
+    y_fine : numpy.ndarray
+        Fitted curve evaluated at each point in *x_fine*.
+    label : str
+        Human-readable label including the fitted parameters.
+    params : dict
+        ``{"A": float, "μ": float, "σ": float}``.
+    """
+    A0    = float(np.max(y))
+    mu0   = float(x[np.argmax(y)])
+    sig0  = float(np.std(x)) or 1.0
+
+    def model(x_, A, mu, sigma):
+        return A * np.exp(-(x_ - mu) ** 2 / (2 * sigma ** 2))
+
+    popt, _ = curve_fit(model, x, y, p0=[A0, mu0, sig0], maxfev=10000)
+    A, mu, sigma = popt
+    x_fine = np.linspace(x.min(), x.max(), 300)
+    y_fine = model(x_fine, *popt)
+    label = f"Gaussian curve  A={A:.4g}  μ={mu:.4g}  σ={sigma:.4g}"
+    return x_fine, y_fine, label, {"A": A, "μ": mu, "σ": sigma}
+
+
+def fit_exponential_curve(x: np.ndarray, y: np.ndarray):
+    """
+    Fit A * exp(-x / tau) + C to xy data.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        1-D array of x values.
+    y : numpy.ndarray
+        1-D array of y values.
+
+    Returns
+    -------
+    x_fine : numpy.ndarray
+        300 evenly-spaced points spanning ``[x.min(), x.max()]``.
+    y_fine : numpy.ndarray
+        Fitted curve evaluated at each point in *x_fine*.
+    label : str
+        Human-readable label including the fitted parameters.
+    params : dict
+        ``{"A": float, "τ": float, "C": float}``.
+    """
+    C0   = float(np.min(y))
+    A0   = float(np.max(y) - C0)
+    x_range = float(x.max() - x.min())
+    tau0 = x_range / 3.0 if x_range > 0 else 1.0
+
+    def model(x_, A, tau, C):
+        return A * np.exp(-x_ / tau) + C
+
+    popt, _ = curve_fit(model, x, y, p0=[A0, tau0, C0], maxfev=10000)
+    A, tau, C = popt
+    x_fine = np.linspace(x.min(), x.max(), 300)
+    y_fine = model(x_fine, *popt)
+    label = f"Exponential curve  A={A:.4g}  τ={tau:.4g}  C={C:.4g}"
+    return x_fine, y_fine, label, {"A": A, "τ": tau, "C": C}
+
+
 def fit_custom(data: np.ndarray, formula: str, param_names: list):
     """
     Fit a user-defined formula to the density histogram of *data*.
@@ -192,8 +267,8 @@ def fit_custom(data: np.ndarray, formula: str, param_names: list):
 # included here; spline, polynomial, linear, and custom fits are handled
 # separately in mainwindow because they operate on xy data, not histograms.
 FIT_FUNCTIONS = {
-    "Gaussian":          fit_gaussian,
-    "Exponential":       fit_exponential,
-    "Maxwell-Boltzmann": fit_maxwell_boltzmann,
-    "Poisson":           fit_poisson,
+    "Gaussian (distribution)":          fit_gaussian,
+    "Exponential (distribution)":       fit_exponential,
+    "Maxwell-Boltzmann (distribution)": fit_maxwell_boltzmann,
+    "Poisson (distribution)":           fit_poisson,
 }

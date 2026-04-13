@@ -23,24 +23,28 @@ FIT_METHODS = [
     "spline",
     "linear fit",
     "polynomial fit",
-    "Gaussian",
-    "Exponential",
-    "Maxwell-Boltzmann",
-    "Poisson",
+    "Gaussian curve",
+    "Exponential curve",
+    "Gaussian (distribution)",
+    "Exponential (distribution)",
+    "Maxwell-Boltzmann (distribution)",
+    "Poisson (distribution)",
     "Custom...",
 ]
 
 # Human-readable formula string for each predefined method, displayed
 # read-only in FitDialog.  Empty string for "Custom..." (user-supplied).
 FIT_FORMULAS = {
-    "spline":            "cubic spline interpolation",
-    "linear fit":        "y = a·x + b",
-    "polynomial fit":    "y = a₀ + a₁·x + ... + aₙ·xⁿ",
-    "Gaussian":          "f(x) = 1/(σ√2π) · exp(-(x-μ)²/2σ²)",
-    "Exponential":       "f(x) = λ · exp(-λ·x)",
-    "Maxwell-Boltzmann": "f(x) = √(2/π) · x²/a³ · exp(-x²/2a²)",
-    "Poisson":           "P(k) = μᵏ · e⁻ᵘ / k!",
-    "Custom...":         "",
+    "spline":                        "cubic spline interpolation",
+    "linear fit":                    "y = a·x + b",
+    "polynomial fit":                "y = a₀ + a₁·x + ... + aₙ·xⁿ",
+    "Gaussian curve":                "f(x) = A · exp(-(x-μ)²/2σ²)",
+    "Exponential curve":             "f(x) = A · exp(-x/τ) + C",
+    "Gaussian (distribution)":       "f(x) = 1/(σ√2π) · exp(-(x-μ)²/2σ²)",
+    "Exponential (distribution)":    "f(x) = λ · exp(-λ·x)",
+    "Maxwell-Boltzmann (distribution)": "f(x) = √(2/π) · x²/a³ · exp(-x²/2a²)",
+    "Poisson (distribution)":        "P(k) = μᵏ · e⁻ᵘ / k!",
+    "Custom...":                     "",
 }
 
 
@@ -80,7 +84,7 @@ class FitDialog(QDialog):
 
         self.method = QComboBox()
         self.method.addItems(FIT_METHODS)
-        self.method.setCurrentText(self._cfg.get("fit_method", "Gaussian"))
+        self.method.setCurrentText(self._cfg.get("fit_method", "Gaussian (distribution)"))
         self.method.currentTextChanged.connect(self._on_method_changed)
         form.addRow("Method:", self.method)
 
@@ -110,6 +114,29 @@ class FitDialog(QDialog):
         self.color_btn.clicked.connect(self._pick_color)
         form.addRow("Fit line color:", self.color_btn)
 
+        # --- fit range ---
+        form.addRow(QLabel(""))  # spacer
+        form.addRow(QLabel("<b>Fit range</b>"))
+
+        self.use_zoom = QCheckBox("Use zoom range")
+        self.use_zoom.setChecked(self._cfg.get("fit_use_zoom", False))
+        self.use_zoom.stateChanged.connect(self._on_zoom_toggled)
+        form.addRow(self.use_zoom)
+
+        self.xmin_spin = QDoubleSpinBox()
+        self.xmin_spin.setRange(-1e15, 1e15)
+        self.xmin_spin.setValue(self._cfg.get("fit_xmin", -1e10))
+        self.xmin_spin.setDecimals(6)
+        self.xmin_spin.setSpecialValueText("auto")
+        form.addRow("x min:", self.xmin_spin)
+
+        self.xmax_spin = QDoubleSpinBox()
+        self.xmax_spin.setRange(-1e15, 1e15)
+        self.xmax_spin.setValue(self._cfg.get("fit_xmax", 1e10))
+        self.xmax_spin.setDecimals(6)
+        self.xmax_spin.setSpecialValueText("auto")
+        form.addRow("x max:", self.xmax_spin)
+
         layout.addLayout(form)
         btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         btns.accepted.connect(self.accept)
@@ -117,6 +144,12 @@ class FitDialog(QDialog):
         layout.addWidget(btns)
 
         self._on_method_changed(self.method.currentText())
+        self._on_zoom_toggled(self.use_zoom.checkState())
+
+    def _on_zoom_toggled(self, state):
+        enabled = not bool(state)
+        self.xmin_spin.setEnabled(enabled)
+        self.xmax_spin.setEnabled(enabled)
 
     def _on_method_changed(self, method: str):
         is_custom = method == "Custom..."
@@ -151,12 +184,17 @@ class FitDialog(QDialog):
             ``"custom_formula"`` (str), ``"custom_params"`` (list of str),
             ``"fit_color"`` (str).
         """
+        xmin_val = self.xmin_spin.value()
+        xmax_val = self.xmax_spin.value()
         return {
             "fit_method":     self.method.currentText(),
             "poly_deg":       self.poly_deg.value(),
             "custom_formula": self.custom_formula.text().strip(),
             "custom_params":  self.custom_params.text().strip().split(),
             "fit_color":      self._color,
+            "fit_xmin":       xmin_val,
+            "fit_xmax":       xmax_val,
+            "fit_use_zoom":   self.use_zoom.isChecked(),
         }
 
 

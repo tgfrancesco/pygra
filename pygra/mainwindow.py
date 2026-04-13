@@ -30,7 +30,7 @@ from .dialogs import (
     TextAnnotationDialog,
     apply_basic_palette, restore_basic_palette,
 )
-from .fitting import FIT_FUNCTIONS, fit_custom
+from .fitting import FIT_FUNCTIONS, fit_custom, fit_gaussian_curve, fit_exponential_curve
 from .widgets import DatasetWidget
 from .state import save_state, load_state
 from .preferences import load_prefs, save_prefs, PREFS_PATH
@@ -807,7 +807,7 @@ class MainWindow(QMainWindow):
 
         # build fit dialog with last settings if available
         fit_cfg = getattr(dw, "_last_fit_cfg", {
-            "fit_method":     "Gaussian",
+            "fit_method":     "Gaussian (distribution)",
             "poly_deg":       3,
             "custom_formula": "a * exp(-b * x)",
             "custom_params":  ["a", "b"],
@@ -835,12 +835,42 @@ class MainWindow(QMainWindow):
         x_src = dw.dataset.col(cfg["xcol"]) if not cfg["hist_mode"] else None
         y_src = dw.dataset.col(cfg["ycol"]) if not cfg["hist_mode"] else None
 
+        # --- resolve fit x range ---
+        if fit_cfg.get("fit_use_zoom", False):
+            ax = self.fig.axes[0] if self.fig.axes else None
+            if ax:
+                xmin, xmax = ax.get_xlim()
+            else:
+                xmin, xmax = None, None
+        else:
+            raw_min = fit_cfg.get("fit_xmin", -1e10)
+            raw_max = fit_cfg.get("fit_xmax",  1e10)
+            xmin = raw_min if raw_min > -1e9 else None
+            xmax = raw_max if raw_max <  1e9 else None
+
+        if x_src is not None and y_src is not None:
+            mask = np.ones(len(x_src), dtype=bool)
+            if xmin is not None:
+                mask &= x_src >= xmin
+            if xmax is not None:
+                mask &= x_src <= xmax
+            x_src = x_src[mask]
+            y_src = y_src[mask]
+
+        if cfg["hist_mode"]:
+            if xmin is not None:
+                data = data[data >= xmin]
+            if xmax is not None:
+                data = data[data <= xmax]
+
         try:
             if method in ("spline", "linear fit", "polynomial fit"):
                 if x_src is None or y_src is None:
                     QMessageBox.warning(self, "Fit", "Interpolation requires x and y columns.")
                     return
-                xi = np.linspace(x_src.min(), x_src.max(), 300)
+                x_plot_min = xmin if xmin is not None else x_src.min()
+                x_plot_max = xmax if xmax is not None else x_src.max()
+                xi = np.linspace(x_plot_min, x_plot_max, 300)
                 if method == "spline":
                     idx_s = np.argsort(x_src)
                     from scipy.interpolate import make_interp_spline as mbs
@@ -857,6 +887,17 @@ class MainWindow(QMainWindow):
                     yi  = np.polyval(p, xi)
                     lbl = f"poly deg={deg}"
                 xf, yf = xi, yi
+
+            elif method in ("Gaussian curve", "Exponential curve"):
+                if x_src is None or y_src is None:
+                    QMessageBox.warning(self, "Fit", "Curve fit requires x and y columns.")
+                    return
+                if method == "Gaussian curve":
+                    xf, yf, lbl, params = fit_gaussian_curve(x_src, y_src)
+                else:
+                    xf, yf, lbl, params = fit_exponential_curve(x_src, y_src)
+                param_str = "\n".join(f"  {k} = {v:.6g}" for k, v in params.items())
+                QMessageBox.information(self, f"Fit: {method}", f"{lbl}\n\nParameters:\n{param_str}")
 
             elif method == "Custom...":
                 xf, yf, lbl, params = fit_custom(

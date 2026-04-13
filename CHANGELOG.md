@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0] - 2026-04-13
+
+### Added
+- Fit range selection in Fit & Interpolation dialog: manual x min/x max 
+  fields or "Use zoom range" checkbox to fit only the visible region
+- Gaussian curve fit: fits A·exp(-(x-μ)²/2σ²) to (x,y) data using 
+  scipy.optimize.curve_fit
+- Exponential curve fit: fits A·exp(-x/τ)+C to (x,y) data
+
+### Changed
+- Distribution fits renamed for clarity: "Gaussian (distribution)", 
+  "Exponential (distribution)", "Maxwell-Boltzmann (distribution)", 
+  "Poisson (distribution)" — distinguishes them from the new curve fits
+
 ## [0.7.1] - 2026-04-07
 
 ### Added
