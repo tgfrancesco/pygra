@@ -104,6 +104,8 @@ pygra
 - **Fit & interpolation layers** — lists active fit curves with visibility toggle, remove button, and double-click to edit style
 - **Axis settings** — labels, title, log scale, limits
 - **Plot** — renders the figure (also Ctrl+Enter)
+- **Double-click on a curve** in the plot to automatically switch to the 
+  corresponding series tab in the left panel
 
 **Menu bar:**
 
