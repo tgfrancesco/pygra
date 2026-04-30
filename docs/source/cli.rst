@@ -12,7 +12,7 @@ Basic usage
    pygra
 
    # load files (shell expands glob patterns)
-   pygra *wham_TI.dat
+   pygra *file*.dat
 
    # same columns for all files
    pygra file1.dat file2.dat --x 0 --y 3
@@ -63,10 +63,10 @@ Examples
 .. code-block:: bash
 
    # two files, different y columns
-   pygra --file base.dat --x 0 --y 3 --file unique.dat --x 0 --y 5
+   pygra --file file1.dat --x 0 --y 3 --file file2.dat --x 0 --y 5
 
    # all matching files, same columns
-   pygra *wham_TI.dat --x 0 --y 3
+   pygra *file*.dat --x 0 --y 3
 
    # resume a previous session
    pygra --load my_analysis.json
