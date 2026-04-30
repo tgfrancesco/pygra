@@ -147,6 +147,9 @@ pygra file1.dat file2.dat --x 0 --y 3
 # per-file column specification
 pygra --file file1.dat --x 0 --y 3 --file file2.dat --x 0 --y 5
 
+# specify error bars
+pygra --file data.dat --x 0 --y 1 --dy 2
+
 # load a saved session
 pygra --load session.json
 
