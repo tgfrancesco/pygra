@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1] - 2026-04-30
+
+### Added
+- Series navigation dropdown above the tab panel for quick switching 
+  between loaded series
+- Double-click on a curve in the plot to jump to the corresponding 
+  series tab
+
 ## [0.8.0] - 2026-04-13
 
 ### Added
