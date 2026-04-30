@@ -45,6 +45,13 @@ Options
    * - ``--y COL``
      - y column index (0-based) for the preceding ``--file``.
        If given after all files, applies to all. Default: 1.
+   * - ``--dy COL``
+     - Optional error bar column index (0-based) for the preceding ``--file``.
+       If given after all files, applies to all. Default: none.
+   * - ``--dx COL``
+     - Optional error bar column index (0-based) for the preceding ``--file``.
+       If given after all files, applies to all. Default: none.
+   * - ``-s``, ``--session FILE``
    * - ``-l``, ``--load FILE``
      - Load a previously saved session (``.json``).
    * - ``-h``, ``--help``

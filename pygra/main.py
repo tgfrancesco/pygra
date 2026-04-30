@@ -10,7 +10,7 @@ PyGRA — interactive scientific data plotter
 
 Usage:
   pygra [file ...] [options]
-  pygra --file FILE [--x COL] [--y COL] [--file FILE ...] [options]
+  pygra --file FILE [--x COL] [--y COL] [--dx COL] [--dy COL] [--file FILE ...] [options]
 
 Positional arguments:
   file                  One or more data files. The shell expands glob
@@ -22,6 +22,12 @@ Options:
                         If given after all files, applies to all. Default: 0
   --y COL               y column index (0-based) for the preceding --file.
                         If given after all files, applies to all. Default: 1
+  --dx COL              x error bar column index (0-based) for the preceding
+                        --file. If given after all files, applies to all.
+                        Default: 0 (no x error bars)
+  --dy COL              y error bar column index (0-based) for the preceding
+                        --file. If given after all files, applies to all.
+                        Default: 0 (no y error bars)
   -l, --load FILE       Load a previously saved session (.json)
   -h, --help            Show this help message and exit
 
@@ -30,13 +36,16 @@ Examples:
   pygra
 
   # positional — shell expands the glob
-  pygra *wham_TI.dat
+  pygra *file*.dat
 
   # same columns for all files
-  pygra base.dat unique.dat --x 0 --y 3
+  pygra file1.dat file2.dat --x 0 --y 3
 
   # per-file column specification
-  pygra --file base.dat --x 0 --y 3 --file unique.dat --x 0 --y 5
+  pygra --file file1.dat --x 0 --y 3 --file file2.dat --x 0 --y 5
+
+  # specify error bars
+  pygra --file data.dat --x 0 --y 1 --dy 2
 
   # load a saved session
   pygra --load session.json
@@ -47,9 +56,9 @@ def _parse_interleaved(argv: list) -> dict:
     """
     Parse the command-line argument list into a structured dict.
 
-    Supports interleaved ``--file``/``--x``/``--y`` groups so that each
+    Supports interleaved ``--file``/``--x``/``--y``/``--dx``/``--dy`` groups so that each
     ``--file`` can carry its own column specification, and also handles
-    positional file arguments and a trailing ``--x``/``--y`` that applies
+    positional file arguments and trailing column options that apply
     to all files.  Prints :data:`HELP_TEXT` and exits if ``-h`` or
     ``--help`` is present.
 
@@ -62,8 +71,8 @@ def _parse_interleaved(argv: list) -> dict:
     -------
     dict
         ``{"files": list[dict], "load": str | None}`` where each file
-        dict has keys ``"path"`` (str), ``"xcol"`` (int), and
-        ``"ycol"`` (int).
+        dict has keys ``"path"`` (str), ``"xcol"`` (int), ``"ycol"``
+        (int), ``"dxcol"`` (int), and ``"dycol"`` (int).
     """
     if any(tok in ("-h", "--help") for tok in argv):
         print(HELP_TEXT)
@@ -71,8 +80,14 @@ def _parse_interleaved(argv: list) -> dict:
 
     files = []
     load = None
-    global_x = None
-    global_y = None
+    global_cols = {"xcol": None, "ycol": None, "dxcol": None, "dycol": None}
+    col_options = {
+        "--x": "xcol",
+        "--y": "ycol",
+        "--dx": "dxcol",
+        "--dy": "dycol",
+    }
+    defaults = {"xcol": 0, "ycol": 1, "dxcol": 0, "dycol": 0}
 
     def _has_subsequent_file(start: int) -> bool:
         """Return True if argv[start:] contains another file argument."""
@@ -81,7 +96,7 @@ def _parse_interleaved(argv: list) -> dict:
             nxt = argv[j]
             if nxt in ("--file", "-f"):
                 return True
-            if nxt in ("--load", "-l", "--x", "--y"):
+            if nxt in ("--load", "-l", "--x", "--y", "--dx", "--dy"):
                 j += 2
                 continue
             if not nxt.startswith("-"):
@@ -98,38 +113,37 @@ def _parse_interleaved(argv: list) -> dict:
         elif tok in ("--file", "-f"):
             i += 1
             if i < len(argv):
-                files.append({"path": argv[i], "xcol": None, "ycol": None})
-        elif tok == "--x" and files:
+                files.append(
+                    {
+                        "path": argv[i],
+                        "xcol": None,
+                        "ycol": None,
+                        "dxcol": None,
+                        "dycol": None,
+                    }
+                )
+        elif tok in col_options and files:
             i += 1
             try:
                 value = int(argv[i])
             except (ValueError, IndexError):
                 value = None
             if value is not None:
+                key = col_options[tok]
                 if _has_subsequent_file(i + 1):
-                    files[-1]["xcol"] = value
+                    files[-1][key] = value
                 else:
-                    global_x = value
-        elif tok == "--y" and files:
-            i += 1
-            try:
-                value = int(argv[i])
-            except (ValueError, IndexError):
-                value = None
-            if value is not None:
-                if _has_subsequent_file(i + 1):
-                    files[-1]["ycol"] = value
-                else:
-                    global_y = value
+                    global_cols[key] = value
         elif not tok.startswith("-"):
-            files.append({"path": tok, "xcol": None, "ycol": None})
+            files.append(
+                {"path": tok, "xcol": None, "ycol": None, "dxcol": None, "dycol": None}
+            )
         i += 1
 
     for f in files:
-        if f["xcol"] is None:
-            f["xcol"] = global_x if global_x is not None else 0
-        if f["ycol"] is None:
-            f["ycol"] = global_y if global_y is not None else 1
+        for key, default in defaults.items():
+            if f[key] is None:
+                f[key] = global_cols[key] if global_cols[key] is not None else default
 
     return {"files": files, "load": load}
 
@@ -178,7 +192,13 @@ def main():
             print(f"Warning: could not load session: {e}", file=sys.stderr)
 
     for f in args["files"]:
-        win._load_file(f["path"], xcol=f["xcol"], ycol=f["ycol"])
+        win._load_file(
+            f["path"],
+            xcol=f["xcol"],
+            ycol=f["ycol"],
+            dxcol=f["dxcol"],
+            dycol=f["dycol"],
+        )
 
     win.show()
     sys.exit(app.exec_())
