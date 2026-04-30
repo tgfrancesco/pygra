@@ -15,6 +15,8 @@ Left panel
 ~~~~~~~~~~
 
 - **Load files** — opens one or more data files
+- **Series selector** — dropdown menu to quickly navigate between loaded 
+  series without scrolling through tabs
 - **Series tabs** — one tab per loaded series; each tab has column selectors,
   mode selector (Series / Histogram / Histogram 2D), Appearance button,
   visibility checkbox, and a close button (✕)
@@ -22,6 +24,8 @@ Left panel
   toggle, remove button, and double-click to edit style
 - **Axis settings** — labels, title, log scale, limits
 - **Plot** — renders the figure (also Ctrl+Enter)
+- **Double-click on a curve** in the plot to automatically switch to the 
+  corresponding series tab in the left panel
 
 Menu bar
 ~~~~~~~~

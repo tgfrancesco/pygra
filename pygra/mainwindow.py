@@ -12,13 +12,14 @@ from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QGroupBox, QGridLayout, QSplitter,
     QCheckBox, QTabWidget, QFileDialog, QMessageBox, QSizePolicy,
     QDialog, QShortcut, QAction, QPushButton, QFrame,
-    QScrollArea, QMenu,
+    QScrollArea, QMenu, QComboBox,
 )
 from PyQt5.QtCore import Qt, QTimer, QUrl
 from PyQt5.QtGui import QKeySequence, QIcon, QDesktopServices
 
 import matplotlib
 matplotlib.use("Qt5Agg")
+from matplotlib.backend_bases import MouseButton
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -182,6 +183,7 @@ class MainWindow(QMainWindow):
         self._annot_artists: list = []         # matplotlib Text objects, rebuilt each _plot()
         self._dragging_annot_idx: int = -1
         self._palette_actions: dict = {}
+        self._syncing_series_nav = False
         self._build_ui()
         self._build_menu()
         self._restore_geometry()
@@ -328,11 +330,18 @@ class MainWindow(QMainWindow):
         load_btn.clicked.connect(self._load_files)
         lv.addWidget(load_btn)
 
+        self._series_combo = QComboBox()
+        self._series_combo.setPlaceholderText("Go to series...")
+        self._series_combo.setToolTip("Go to series...")
+        self._series_combo.currentIndexChanged.connect(self._on_series_combo_changed)
+        lv.addWidget(self._series_combo)
+
         # series tabs
         self.datasets_tab = QTabWidget()
         self.datasets_tab.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.datasets_tab.setTabsClosable(True)
         self.datasets_tab.tabCloseRequested.connect(self._close_tab)
+        self.datasets_tab.currentChanged.connect(self._on_datasets_tab_changed)
         lv.addWidget(self.datasets_tab, stretch=1)
 
         # fit layer panel
@@ -599,10 +608,42 @@ class MainWindow(QMainWindow):
                     return
             except Exception:
                 pass
+
+        if event.dblclick and event.button in (1, MouseButton.LEFT):
+            if self._activate_tab_for_clicked_curve(ax, event):
+                return
+
         # check legend
         leg = ax.get_legend()
         if leg and leg.contains(event)[0]:
             self._dragging_legend = True
+
+    def _activate_tab_for_clicked_curve(self, ax, event) -> bool:
+        """Switch to the series tab for a double-clicked plot line."""
+        if event.inaxes is not ax:
+            return False
+        for line in ax.get_lines():
+            old_pickradius = None
+            try:
+                old_pickradius = line.get_pickradius()
+                line.set_pickradius(8)
+                hit, _ = line.contains(event)
+            except Exception:
+                hit = False
+            finally:
+                try:
+                    if old_pickradius is not None:
+                        line.set_pickradius(old_pickradius)
+                except Exception:
+                    pass
+            if not hit:
+                continue
+            label = line.get_label()
+            for index, dw in enumerate(self.dataset_widgets):
+                if label == dw.get_config().get("label"):
+                    self.datasets_tab.setCurrentIndex(index)
+                    return True
+        return False
 
     def _on_mouse_move(self, event):
         # coordinate display
@@ -711,11 +752,12 @@ class MainWindow(QMainWindow):
         dw = DatasetWidget(
             ds, color,
             on_duplicate=self._add_dataset_widget,
-            on_replot=self._plot,
+            on_replot=self._refresh_series_combo_and_plot,
         )
         self.dataset_widgets.append(dw)
         self.datasets_tab.addTab(dw, tab_name)
         self.datasets_tab.setCurrentWidget(dw)
+        self._refresh_series_combo()
         return dw
 
     def _close_tab(self, index: int):
@@ -730,6 +772,38 @@ class MainWindow(QMainWindow):
         other_refs = [w for w in self.dataset_widgets if w.dataset is ds]
         if not other_refs and ds in self.datasets:
             self.datasets.remove(ds)
+        self._refresh_series_combo()
+
+    def _on_series_combo_changed(self, index: int):
+        if self._syncing_series_nav:
+            return
+        if 0 <= index < self.datasets_tab.count():
+            self._syncing_series_nav = True
+            self.datasets_tab.setCurrentIndex(index)
+            self._syncing_series_nav = False
+
+    def _on_datasets_tab_changed(self, index: int):
+        if self._syncing_series_nav:
+            return
+        if index != self._series_combo.currentIndex():
+            self._syncing_series_nav = True
+            self._series_combo.setCurrentIndex(index)
+            self._syncing_series_nav = False
+
+    def _refresh_series_combo(self):
+        current = self.datasets_tab.currentIndex()
+        self._syncing_series_nav = True
+        self._series_combo.clear()
+        for dw in self.dataset_widgets:
+            label = dw.get_config().get("label") or dw.dataset.name
+            self._series_combo.addItem(label)
+        if 0 <= current < self._series_combo.count():
+            self._series_combo.setCurrentIndex(current)
+        self._syncing_series_nav = False
+
+    def _refresh_series_combo_and_plot(self):
+        self._refresh_series_combo()
+        self._plot()
 
     def _export_active(self):
         idx = self.datasets_tab.currentIndex()
@@ -1121,6 +1195,7 @@ class MainWindow(QMainWindow):
         self._apply_axis_settings(state.get("axis_settings", {}))
         self.style_settings = state.get("style_settings", dict(DEFAULT_STYLE_SETTINGS))
         self._annotations = state.get("annotations", [])
+        self._refresh_series_combo()
 
     def _add_annotation(self):
         """Open TextAnnotationDialog and add a new annotation at axes centre."""

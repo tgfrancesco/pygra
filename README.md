@@ -18,6 +18,8 @@
 
 - Load multiple whitespace-delimited data files (`.dat`, `.txt`, `.csv`, ...)
 - Per-series column selection for x, y, and optional x/y error bars
+- Series navigation dropdown for quick switching between loaded files
+- Double-click on a plot curve to jump to the corresponding series tab
 - Multiple plots from the same file with independent settings
 - Histogram mode with bin control and normalisation (count / density / probability)
 - Fit & Interpolation: spline, linear, polynomial, Gaussian, Exponential, Maxwell-Boltzmann, Poisson, custom formula

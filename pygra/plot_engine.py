@@ -178,7 +178,12 @@ def render_plot(fig, ax, dataset_widgets, fit_layers, annotations,
             label=cfg["label"],
         )
         if dx is not None or dy is not None:
-            ax.errorbar(x, y, xerr=dx, yerr=dy, capsize=3, **plot_kw)
+            err = ax.errorbar(x, y, xerr=dx, yerr=dy, capsize=3, **plot_kw)
+            # Matplotlib labels the ErrorbarContainer, but hit-testing uses
+            # the inner Line2D from ax.get_lines().
+            if err.lines and err.lines[0] is not None:
+                err.lines[0].set_label(cfg["label"])
+                err.set_label("_nolegend_")
         else:
             ax.plot(x, y, **plot_kw)
 
