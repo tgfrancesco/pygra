@@ -75,5 +75,8 @@ Examples
    # all matching files, same columns
    pygra *file*.dat --x 0 --y 3
 
+   # specify error bars
+   pygra --file data.dat --x 0 --y 1 --dy 2
+
    # resume a previous session
    pygra --load my_analysis.json
